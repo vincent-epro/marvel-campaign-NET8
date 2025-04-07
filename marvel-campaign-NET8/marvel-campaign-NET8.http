@@ -1,0 +1,6 @@
+@marvel_campaign_NET8_HostAddress = http://localhost:5186
+
+GET {{marvel_campaign_NET8_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
