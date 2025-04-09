@@ -20,7 +20,7 @@ namespace marvel_campaign_NET8.Controllers
             _scrme = context;
         }
 
-        // Get Call History
+        // Get Call History - campaign
         [Route("GetCallHistory")]
         [HttpPost]
         public IActionResult GetCallHistory([FromBody] JsonObject data)
