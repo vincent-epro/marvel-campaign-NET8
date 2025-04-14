@@ -25,27 +25,26 @@ namespace marvel_campaign_NET8.Controllers
         [HttpPost]
         public IActionResult GetCallHistory([FromBody] JsonObject data)
         {
-            //   string token = (data[InputAuth_Token] ?? "").ToString();
-            //   string tk_agentId = (data[InputAuth_Agent_Id] ?? "").ToString();
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
 
             try
             {
-                //   if (Authenticated(token, tk_agentId))
-                //   {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    int agentId = Convert.ToInt32((data["Updated_By"] ?? "-1").ToString());
 
-                int agentId = Convert.ToInt32((data["Updated_By"] ?? "-1").ToString());
-
-                return Content(Get_CRMCallHistory(agentId).ToString(), "application/json; charset=utf-8", Encoding.UTF8);
-                //   }
-                //   else
-                //   {
-                //       return Ok(new { result = "fail", details = Not_Auth_Desc });
-                //   }
+                    return Content(Get_CRMCallHistory(agentId).ToString(), "application/json; charset=utf-8", Encoding.UTF8);
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
 
             }
-            catch (Exception )
+            catch (Exception)
             {
-                return Ok(new { result = "fail", details = "Invalid Parameters." });
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
 
             }
         }
@@ -60,7 +59,7 @@ namespace marvel_campaign_NET8.Controllers
 
             if (agentId != -1)
             {
-                _all_call_histories = _all_call_histories.Where(_h => _h.Updated_By == agentId).OrderBy(_h => _h.Updated_Time); ;
+                _all_call_histories = _all_call_histories.Where(_h => _h.Updated_By == agentId).OrderBy(_h => _h.Updated_Time);
             }
             else
             {
@@ -97,7 +96,7 @@ namespace marvel_campaign_NET8.Controllers
             // set up _all_results json data
             JObject allJsonResults = new JObject()
             {
-                new JProperty("result", "success"),
+                new JProperty("result", AppOutp.OutputResult_SUCC),
                 new JProperty("details", _call_history_list)
             };
 
