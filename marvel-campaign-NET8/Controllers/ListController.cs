@@ -20,7 +20,8 @@ namespace marvel_campaign_NET8.Controllers
             _scrme = context;
         }
 
-        // Get Call History - campaign
+
+        // Get Call History
         [Route("GetCallHistory")]
         [HttpPost]
         public IActionResult GetCallHistory([FromBody] JsonObject data)
@@ -40,12 +41,10 @@ namespace marvel_campaign_NET8.Controllers
                 {
                     return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
                 }
-
             }
             catch (Exception)
             {
                 return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
-
             }
         }
 
@@ -104,6 +103,77 @@ namespace marvel_campaign_NET8.Controllers
             return allJsonResults;
         }
 
+
+        // Get Case Log
+        [Route("GetCaseLog")]
+        [HttpPost]
+        public IActionResult GetCaseLog([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    int caseNo = Convert.ToInt32((data["Case_No"] ?? "-1").ToString());
+                    string validityType = (data["Is_Valid"] ?? "").ToString();
+
+                    List<case_result_log> _list_case_log = GetCRM_CaseLog(caseNo, validityType);
+
+                    if (_list_case_log != null)
+                    {
+                        // return successful get and display the list of data
+                        return Ok(new { result = AppOutp.OutputResult_SUCC, details = _list_case_log });
+                    }
+                    else
+                    {
+                        // return unsuccessful get
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "case log does not exist" });
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private List<case_result_log> GetCRM_CaseLog(int caseNo, string validityType)
+        {
+            // obtain data from table "case_result_log"
+            var _logs = (from _log in _scrme.case_result_logs
+                         where _log.Case_No == caseNo
+                         select _log);
+
+            // filter out results by validity and [order by Created_Time in descending order]
+            switch (validityType)
+            {
+                case "Y":
+                    _logs = _logs.Where(_l => _l.Is_Valid == "Y").OrderByDescending(_l => _l.Updated_Time);
+                    break;
+
+                case "N":
+                    _logs = _logs.Where(_l => _l.Is_Valid == "N").OrderByDescending(_l => _l.Updated_Time);
+                    break;
+
+                case "all":
+                default:
+                    {
+                        _logs = _logs.Where(_l => _l.Is_Valid == "Y" || _l.Is_Valid == "N").OrderByDescending(_l => _l.Updated_Time);
+                        break;
+                    }
+            }
+
+
+            return _logs.ToList();
+
+        }
 
 
 
