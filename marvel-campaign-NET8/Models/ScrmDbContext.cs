@@ -21,6 +21,10 @@ public partial class ScrmDbContext : DbContext
 
     public virtual DbSet<case_result_log> case_result_logs { get; set; }
 
+    public virtual DbSet<field> fields { get; set; }
+
+    public virtual DbSet<field_option> field_options { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -191,6 +195,31 @@ public partial class ScrmDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Type_Details).HasMaxLength(150);
             entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<field>(entity =>
+        {
+            entity.HasKey(e => new { e.Field_Category, e.Field_Name });
+
+            entity.ToTable("field");
+
+            entity.Property(e => e.Field_Category).HasMaxLength(50);
+            entity.Property(e => e.Field_Name).HasMaxLength(50);
+            entity.Property(e => e.Field_Display).HasMaxLength(50);
+            entity.Property(e => e.Field_Tag).HasMaxLength(50);
+            entity.Property(e => e.Field_Type).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<field_option>(entity =>
+        {
+            entity.HasKey(e => new { e.Field_Name, e.Field_Option }).HasName("PK_Field_Option");
+
+            entity.ToTable("field_option");
+
+            entity.Property(e => e.Field_Name)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Field_Option).HasMaxLength(50);
         });
 
         OnModelCreatingPartial(modelBuilder);
