@@ -17,6 +17,8 @@ public partial class ScrmDbContext : DbContext
 
     public virtual DbSet<call_history> call_histories { get; set; }
 
+    public virtual DbSet<case_reminder> case_reminders { get; set; }
+
     public virtual DbSet<case_result> case_results { get; set; }
 
     public virtual DbSet<case_result_log> case_result_logs { get; set; }
@@ -55,6 +57,26 @@ public partial class ScrmDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Type_Details).HasMaxLength(150);
             entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<case_reminder>(entity =>
+        {
+            entity.HasKey(e => new { e.Reminder_Id, e.Case_No });
+
+            entity.ToTable("case_reminder");
+
+            entity.HasIndex(e => e.Created_By, "IX_Created_By");
+
+            entity.HasIndex(e => e.Is_Read, "IX_Is_Read");
+
+            entity.HasIndex(e => e.Scheduled_Time, "IX_Scheduled_Time");
+
+            entity.Property(e => e.Reminder_Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.Is_Read)
+                .HasMaxLength(1)
+                .IsUnicode(false);
+            entity.Property(e => e.Scheduled_Time).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<case_result>(entity =>
