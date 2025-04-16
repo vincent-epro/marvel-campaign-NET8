@@ -49,7 +49,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             int caseNo = Convert.ToInt32((data["Case_No"] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
-            DateTime scheduledTime = Convert.ToDateTime((data["Scheduled_Time"] ?? DateTime.MinValue).ToString());
+         //   DateTime scheduledTime = Convert.ToDateTime((data["Scheduled_Time"] ?? DateTime.MinValue).ToString()); //old
 
             // declare a dictionary object where key = fieldName, value = fieldValue 
             Dictionary<string, string> fieldsToBeAdded = new Dictionary<string, string>();
@@ -86,9 +86,9 @@ namespace marvel_campaign_NET8.Controllers
                     }
                 }
 
-                if (scheduledTime != DateTime.MinValue)
+                if (data.ContainsKey("Scheduled_Time") && !string.IsNullOrEmpty(data["Scheduled_Time"]?.ToString()))
                 {
-                    _reminder.Scheduled_Time = scheduledTime; // set the time
+                    _reminder.Scheduled_Time = Convert.ToDateTime((data["Scheduled_Time"] ?? "").ToString()); // set the time
                 }
 
                 _reminder.Created_By = agentId;
@@ -107,7 +107,7 @@ namespace marvel_campaign_NET8.Controllers
 
                 _new_reminder_item.Is_Read = "N";
                 _new_reminder_item.Remarks = fieldsToBeAdded["Remarks"];
-                _new_reminder_item.Scheduled_Time = scheduledTime;
+                _new_reminder_item.Scheduled_Time = Convert.ToDateTime((data["Scheduled_Time"] ?? "").ToString());
                 _new_reminder_item.Created_By = agentId;
                 _new_reminder_item.Created_Time = DateTime.Now;
 
