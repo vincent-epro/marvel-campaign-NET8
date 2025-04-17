@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Text;
 using System.Text.Json.Nodes;
 
 namespace marvel_campaign_NET8.Controllers
@@ -144,6 +146,83 @@ namespace marvel_campaign_NET8.Controllers
 
             return tableFieldsDict;
         }
+
+
+        // Get Photo
+        [Route("GetPhoto")]
+        [HttpPost]
+        public IActionResult GetPhoto([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    return Content(Get_CRMPhoto(data).ToString(), "application/json; charset=utf-8", Encoding.UTF8);
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private JObject Get_CRMPhoto(JsonObject data)
+        {
+            JObject photoJson = new JObject(); // declare json object
+
+            int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
+
+            if (customerId == 0)
+            {
+                photoJson = new JObject() // no customer
+                    {
+                        new JProperty("result", AppOutp.OutputResult_FAIL),
+                        new JProperty("details", "invalid parameters")
+                    };
+            }
+            else
+            {
+                // declare table item and obtain the row of data with the given customer id
+                contact_list? _contact = (from _c in _scrme.contact_lists
+                                              where _c.Customer_Id == customerId
+                                              select _c).SingleOrDefault();
+
+                if (_contact != null)
+                {
+                    JObject jsonResults = new JObject()
+                    {   // add column data to json object
+                        new JProperty("Photo_Type", _contact.Photo_Type),
+                        new JProperty("Photo_Content", Convert.ToBase64String(_contact.Photo))
+                    };
+
+                    photoJson = new JObject() // add to overall json object
+                    {
+                        new JProperty("result", AppOutp.OutputResult_SUCC),
+                        new JProperty("details", jsonResults)
+                    };
+                }
+                else
+                {
+                    photoJson = new JObject() // add to overall json object
+                    {
+                        new JProperty("result", AppOutp.OutputResult_FAIL),
+                        new JProperty("details", "customer does not exist")
+                    };
+                }
+            }
+            return photoJson;
+        }
+
+
+
+
 
 
     }

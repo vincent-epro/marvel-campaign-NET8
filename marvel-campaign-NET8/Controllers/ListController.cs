@@ -331,6 +331,76 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Change Contact
+        [Route("ChangeContact")]
+        [HttpPut]
+        public IActionResult ChangeContact([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string updateStatus = ChangeCRM_Contact(data);
+
+                    if (updateStatus == "success")
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_SUCC, details = "changed contact" });
+                    }
+                    else
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "case does not exist" });
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private string ChangeCRM_Contact(JsonObject data)
+        {
+            int caseNo = Convert.ToInt32((data["Case_No"] ?? "-1").ToString());
+            int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+
+            // obtain results from case_result
+            var _case_item = (from _case in _scrme.case_results
+                              where _case.Case_No == caseNo
+                              select _case
+                             ).SingleOrDefault();
+
+            // if there is a result
+            if (_case_item != null)
+            {
+                // assign new values to the table fields
+                _case_item.Customer_Id = customerId;
+                _case_item.Updated_By = agentId;
+                _case_item.Updated_Time = DateTime.Now;
+
+                _scrme.SaveChanges();
+
+                return "success";
+            }
+            else
+            {
+                // return unsuccessful update
+                return "fail";
+            }
+        }
+
+
+
+
+
 
     }
 }
