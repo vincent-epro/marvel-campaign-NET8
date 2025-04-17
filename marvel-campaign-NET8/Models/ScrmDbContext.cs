@@ -11,6 +11,8 @@ public partial class ScrmDbContext : DbContext
     {
     }
 
+    public virtual DbSet<call_filter> call_filters { get; set; }
+
     public virtual DbSet<call_history> call_histories { get; set; }
 
     public virtual DbSet<case_reminder> case_reminders { get; set; }
@@ -29,6 +31,37 @@ public partial class ScrmDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<call_filter>(entity =>
+        {
+            entity.HasKey(e => e.Filter_Id);
+
+            entity.ToTable("call_filter");
+
+            entity.Property(e => e.Address_Line).HasMaxLength(500);
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.Email)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Filter_Type)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.First_Name).HasMaxLength(200);
+            entity.Property(e => e.Is_Valid)
+                .HasMaxLength(1)
+                .IsUnicode(false);
+            entity.Property(e => e.Last_Name).HasMaxLength(200);
+            entity.Property(e => e.Mobile_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Other_Phone_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Title)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<call_history>(entity =>
         {
             entity.HasKey(e => e.Conn_Id);

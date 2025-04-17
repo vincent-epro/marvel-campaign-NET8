@@ -399,6 +399,130 @@ namespace marvel_campaign_NET8.Controllers
 
 
 
+        // Upload Photo
+        [Route("UploadPhoto")]
+        [HttpPost]
+        public async Task<IActionResult> UploadPhoto()
+        {
+            try
+            {
+                string token = string.Empty;
+                string tk_agentId = string.Empty;
+
+                if (Request.Form.Files.Count == 0)
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = "No file was uploaded." });
+                }
+                var file = Request.Form.Files[0];
+
+                int customerId = 0;
+                int agentId = 0;
+
+                foreach (var key in Request.Form.Keys)
+                {
+                    if (key == "Customer_Id")
+                    {
+                        customerId = Convert.ToInt32(Request.Form[key]);
+                    }
+                    else if (key == "Agent_Id")
+                    {
+                        agentId = Convert.ToInt32(Request.Form[key]);
+                        tk_agentId = Convert.ToString(Request.Form[key]);
+                    }
+                    else if (key == "Token")
+                    {
+                        // token = Request.Form[key]; //old
+                        token = Convert.ToString(Request.Form[key]) ?? string.Empty;
+
+                    }
+                }
+
+
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        await file.CopyToAsync(memoryStream); // Read file asynchronously
+                        byte[] photo = memoryStream.ToArray();
+                        string photoType = file.ContentType;
+
+                        // Save the photo and obtain the save status
+                        string saveStatus = SaveCRM_Photo(customerId, agentId, photo, photoType);
+
+                        if (saveStatus == "success")
+                        {
+                            return Ok(new { result = AppOutp.OutputResult_SUCC, details = "" });
+                        }
+                        else
+                        {
+                            return Ok(new { result = AppOutp.OutputResult_FAIL, details = "No such record." });
+                        }
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private string SaveCRM_Photo(int customerId, int agentId, byte[] photo, string fileType)
+        {
+            // obtain the row of data with the given customer id
+            contact_list? _customer = (from _c in _scrme.contact_lists
+                                           where _c.Customer_Id == customerId
+                                           select _c).SingleOrDefault();
+
+            if (_customer == null)
+            {
+                return "fail";
+            }
+            else // contact exists
+            {
+                _customer.Photo = photo; // assign the file to Photo column in table
+                _customer.Photo_Type = fileType; // assign the file type to Photo_Type column
+                _customer.Updated_By = agentId;
+                _customer.Updated_Time = DateTime.Now;
+
+                CopyTo_ContactLog(_customer);
+
+                _scrme.SaveChanges(); // save to database
+
+                return "success";
+            }
+        }
+
+        void CopyTo_ContactLog(contact_list _contact_item)
+        {
+            // declare db table items
+            contact_list_log _log_item = new contact_list_log();
+
+            // iterate each column of the _contact_item
+            foreach (PropertyInfo logColumn in _log_item.GetType().GetProperties())
+            {
+                // insert into all fields except LogID
+                if (logColumn.Name != "LogID")
+                {
+                    // get the column name of case_result table
+                    PropertyInfo? _contact_column = _contact_item.GetType().GetProperty(logColumn.Name);
+
+                    // insert each case field value into log field
+                    logColumn.SetValue(_log_item, _contact_column.GetValue(_contact_item));
+                }
+
+                // add new case result log record
+                _scrme.contact_list_logs.Add(_log_item);
+            }
+        }
+
+
+
+
 
 
 
