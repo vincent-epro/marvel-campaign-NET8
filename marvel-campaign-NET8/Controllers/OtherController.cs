@@ -175,17 +175,19 @@ namespace marvel_campaign_NET8.Controllers
 
         private JObject Get_CRMPhoto(JsonObject data)
         {
-            JObject photoJson = new JObject(); // declare json object
+           // JObject photoJson = new JObject(); // declare json object
 
             int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
 
             if (customerId == 0)
             {
-                photoJson = new JObject() // no customer
+                   JObject photoJson = new JObject() // no customer
                     {
                         new JProperty("result", AppOutp.OutputResult_FAIL),
                         new JProperty("details", "invalid parameters")
                     };
+
+                return photoJson;
             }
             else
             {
@@ -202,22 +204,26 @@ namespace marvel_campaign_NET8.Controllers
                         new JProperty("Photo_Content", Convert.ToBase64String(_contact.Photo))
                     };
 
-                    photoJson = new JObject() // add to overall json object
+                    JObject photoJson = new JObject() // add to overall json object
                     {
                         new JProperty("result", AppOutp.OutputResult_SUCC),
                         new JProperty("details", jsonResults)
                     };
+
+                    return photoJson;
                 }
                 else
                 {
-                    photoJson = new JObject() // add to overall json object
+                    JObject photoJson = new JObject() // add to overall json object
                     {
                         new JProperty("result", AppOutp.OutputResult_FAIL),
                         new JProperty("details", "customer does not exist")
                     };
+
+                    return photoJson;
                 }
             }
-            return photoJson;
+            
         }
 
 
