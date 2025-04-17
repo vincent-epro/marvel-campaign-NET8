@@ -6,10 +6,6 @@ namespace marvel_campaign_NET8.Models;
 
 public partial class ScrmDbContext : DbContext
 {
-    public ScrmDbContext()
-    {
-    }
-
     public ScrmDbContext(DbContextOptions<ScrmDbContext> options)
         : base(options)
     {
@@ -23,10 +19,13 @@ public partial class ScrmDbContext : DbContext
 
     public virtual DbSet<case_result_log> case_result_logs { get; set; }
 
+    public virtual DbSet<contact_list> contact_lists { get; set; }
+
+    public virtual DbSet<contact_list_log> contact_list_logs { get; set; }
+
     public virtual DbSet<field> fields { get; set; }
 
     public virtual DbSet<field_option> field_options { get; set; }
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -217,6 +216,140 @@ public partial class ScrmDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Type_Details).HasMaxLength(150);
             entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<contact_list>(entity =>
+        {
+            entity.HasKey(e => e.Customer_Id);
+
+            entity.ToTable("contact_list");
+
+            entity.HasIndex(e => new { e.Home_No, e.Office_No, e.Mobile_No, e.Fax_No, e.Other_Phone_No }, "IX_All_Phones");
+
+            entity.HasIndex(e => e.Email, "IX_Email");
+
+            entity.HasIndex(e => e.Is_Valid, "IX_Is_Valid");
+
+            entity.Property(e => e.Address1).HasMaxLength(50);
+            entity.Property(e => e.Address2).HasMaxLength(50);
+            entity.Property(e => e.Address3).HasMaxLength(50);
+            entity.Property(e => e.Address4).HasMaxLength(50);
+            entity.Property(e => e.Agree_To_Disclose_Info)
+                .HasMaxLength(1)
+                .IsUnicode(false);
+            entity.Property(e => e.Created_Time)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DOB).HasColumnType("datetime");
+            entity.Property(e => e.Email)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Facebook_Id).HasMaxLength(100);
+            entity.Property(e => e.Fax_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Full_Address).HasMaxLength(200);
+            entity.Property(e => e.Gender)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.Home_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.ID_No)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Is_Valid)
+                .HasMaxLength(1)
+                .IsUnicode(false);
+            entity.Property(e => e.Lang).HasMaxLength(50);
+            entity.Property(e => e.Mobile_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Name_Chi).HasMaxLength(250);
+            entity.Property(e => e.Name_Eng).HasMaxLength(250);
+            entity.Property(e => e.Occupation).HasMaxLength(50);
+            entity.Property(e => e.Office_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Opened_Time)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Other_Phone_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Photo_Type)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Title)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.Updated_Time)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Wechat_Id).HasMaxLength(100);
+            entity.Property(e => e.Whatsapp_Id).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<contact_list_log>(entity =>
+        {
+            entity.HasKey(e => e.LogID);
+
+            entity.ToTable("contact_list_log");
+
+            entity.HasIndex(e => e.Customer_Id, "IX_Customer_Id");
+
+            entity.Property(e => e.Address1).HasMaxLength(50);
+            entity.Property(e => e.Address2).HasMaxLength(50);
+            entity.Property(e => e.Address3).HasMaxLength(50);
+            entity.Property(e => e.Address4).HasMaxLength(50);
+            entity.Property(e => e.Agree_To_Disclose_Info)
+                .HasMaxLength(1)
+                .IsUnicode(false);
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.DOB).HasColumnType("datetime");
+            entity.Property(e => e.Email)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Facebook_Id).HasMaxLength(100);
+            entity.Property(e => e.Fax_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Full_Address).HasMaxLength(200);
+            entity.Property(e => e.Gender)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.Home_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.ID_No)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Is_Valid)
+                .HasMaxLength(1)
+                .IsUnicode(false);
+            entity.Property(e => e.Lang).HasMaxLength(50);
+            entity.Property(e => e.Mobile_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Name_Chi).HasMaxLength(250);
+            entity.Property(e => e.Name_Eng).HasMaxLength(250);
+            entity.Property(e => e.Occupation).HasMaxLength(50);
+            entity.Property(e => e.Office_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Opened_Time).HasColumnType("datetime");
+            entity.Property(e => e.Other_Phone_No)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Photo_Type)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Title)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+            entity.Property(e => e.Wechat_Id).HasMaxLength(100);
+            entity.Property(e => e.Whatsapp_Id).HasMaxLength(100);
         });
 
         modelBuilder.Entity<field>(entity =>

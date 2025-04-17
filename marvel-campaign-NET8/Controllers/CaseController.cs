@@ -121,7 +121,82 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Get Case Reminder
+        [Route("GetCaseReminder")]
+        [HttpPost]
+        public IActionResult GetCaseReminder([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
 
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = GetCRM_CaseReminder(data) });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+
+        private List<case_reminder> GetCRM_CaseReminder(JsonObject data)
+        {
+            int caseNo = Convert.ToInt32((data["Case_No"] ?? "-1").ToString());
+
+            string isRead = (data["Is_Read"] ?? "").ToString();
+            string isOverdue = (data["Is_Overdue"] ?? "").ToString();
+
+            int agentId = Convert.ToInt32((data["To_Check_Id"] ?? "-1").ToString());
+
+
+            // obtain results from case enquiry nature
+            var _reminder = from _r in _scrme.case_reminders
+                            select _r;
+
+            // return results in list or null
+            if (_reminder.Count() > 0)
+            {
+                // search by case no
+                if (caseNo != -1)
+                {
+                    _reminder = _reminder.Where(_r => _r.Case_No == caseNo);
+                }
+
+                // search by isRead
+                if (isRead != string.Empty)
+                {
+                    _reminder = _reminder.Where(_r => _r.Is_Read == isRead);
+                }
+
+                // search by overdue
+                if (isOverdue == "Y")
+                {
+                    _reminder = _reminder.Where(_r => _r.Scheduled_Time < DateTime.Now);
+                }
+                else if (isOverdue == "N")
+                {
+                    _reminder = _reminder.Where(_r => _r.Scheduled_Time >= DateTime.Now);
+                }
+
+                // search by agent id
+                if (agentId != -1)
+                {
+                    _reminder = _reminder.Where(_r => _r.Created_By == agentId);
+                }
+                              
+            }
+
+            return _reminder.ToList();
+
+        }
 
 
 
