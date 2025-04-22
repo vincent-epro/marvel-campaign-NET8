@@ -14,9 +14,19 @@ public partial class Scrm_SP_DbContext : DbContext
 
     public DbSet<CustomerJourney> CustomerJourney_sp { get; set; }
 
+    public DbSet<Dashboard_CallNature> Dashboard_CallNature_sp { get; set; }
+
+    public DbSet<Dashboard_Agent_CallNature> Dashboard_Agent_CallNature_sp { get; set; }
+
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<CustomerJourney>().HasNoKey();
+
+        modelBuilder.Entity<Dashboard_CallNature>().HasNoKey();
+
+        modelBuilder.Entity<Dashboard_Agent_CallNature>().HasNoKey();
+
 
         OnModelCreatingPartial(modelBuilder);
 
@@ -41,5 +51,20 @@ public class CustomerJourney
     public DateTime? Updated_Time { get; set; }
     public int? Case_No { get; set; }
     public string? Details { get; set; }
+}
+
+public class Dashboard_CallNature
+{
+    public string? Description { get; set; }
+}
+
+public class Dashboard_Agent_CallNature
+{
+    public int? Agent_Id { get; set; }
+    public int? Complaint { get; set; }
+    public int? Compliment { get; set; }
+    public int? Enquiry { get; set; }
+    public int? Feedback { get; set; }
+    public int? Subtotal { get; set; }
 }
 
