@@ -622,6 +622,131 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Update Customer
+        [Route("UpdateCustomer")]
+        [HttpPut]
+        public IActionResult UpdateCustomer([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    UpdateCRM_Customer(data);
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = "updated contact list." });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private void UpdateCRM_Customer(JsonObject data)
+        {
+            int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+
+            // assign form body values to table item
+            var customerData = data["Customer_Data"];
+
+            // obtain single customer record based on the customer id
+            var _customer = (from _c in _scrme.contact_lists
+                             where _c.Customer_Id == customerId
+                             select _c).SingleOrDefault<contact_list>();
+
+            // if there is at least 1 customer
+            if (_customer != null)
+            {
+
+                Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
+
+                var customerDataList = customerData as JsonObject;
+
+                if (customerDataList != null)
+                {
+
+                    // iterate through the form data and assign the field name and field value to dictionary
+                    foreach (var item in customerDataList)
+                    {
+
+                        string fieldName = item.Key;
+                        var fieldValue = item.Value?.ToString() ?? null;
+
+                        var fieldType = item.Value?.GetValueKind();
+
+                        if (fieldName != "Agent_Id" && fieldName != "Token")
+                        {
+                            PropertyInfo? fieldProp = new contact_list().GetType().GetProperty(fieldName);
+                            Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
+                            string ftype = type.Name;
+
+                            if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
+                            {
+                                if (fieldValue != null)
+                                {
+                                    fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
+                                }
+                                else
+                                {
+                                    fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
+                                }
+                            }
+                            else
+                            {
+                                if (fieldValue != null)
+                                {
+                                    fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
+                                }
+                                else
+                                {
+                                    fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
+                                }
+                            }
+                        }
+                    }
+
+                }
+
+
+                foreach (var fields in fieldsToBeUpdatedDict)
+                {
+                    // find the column name that matches with the field name in dictionary
+                    PropertyInfo properInfo = _customer.GetType().GetProperty(fields.Key);
+                    properInfo.SetValue(_customer, fields.Value);
+                }
+
+
+
+
+                // updated other columns
+                if (_customer.Is_Valid == "N") // insert customer info
+                {
+                    _customer.Created_By = agentId;
+                    _customer.Created_Time = DateTime.Now;
+                    _customer.Is_Valid = "Y";
+                }
+                _customer.Updated_By = agentId;
+                _customer.Updated_Time = DateTime.Now;
+
+                if (_customer.Is_Valid == "Y")
+                {
+                    CopyTo_ContactLog(_customer); // copy contact_list data to contact_list_log
+                }
+
+                _scrme.SaveChanges();
+
+            }
+
+        }
+
+
 
 
 
