@@ -521,6 +521,105 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Add Customer Case
+        [Route("AddCustomerCase")]
+        [HttpPost]
+        public IActionResult AddCustomerCase([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    List<case_result> _new_case = AddCRM_CustCase(data);
+
+                    return Ok(new
+                    {
+                        result = AppOutp.OutputResult_SUCC,
+                        details = new
+                        {
+                            // retrieve the customer_id and internal_case_no from the new case
+                            Customer_Id = _new_case.First().Customer_Id,
+                            Internal_Case_No = _new_case.First().Internal_Case_No
+                        }
+                    });
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private List<case_result> AddCRM_CustCase(JsonObject data)
+        {
+
+            // declare db table items
+            contact_list _contact_item = new contact_list();
+            case_result _case_item = new case_result();
+
+            int connId = Convert.ToInt32((data["Conn_Id"] ?? "-1").ToString());
+            int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            string callType = (data["Call_Type"] ?? "").ToString();
+            string typeDetails = (data["Type_Details"] ?? "").ToString();
+
+            // for new customer
+            if (customerId == -1)
+            {
+                // assign new customer record
+                _contact_item.Opened_Time = DateTime.Now;
+                _contact_item.Opened_By = agentId;
+                _contact_item.Created_Time = DateTime.Now;
+                _contact_item.Created_By = agentId;
+                _contact_item.Updated_Time = DateTime.Now;
+                _contact_item.Updated_By = agentId;
+                _contact_item.Is_Valid = "N";
+
+
+                // add new customer record
+                _scrme.contact_lists.Add(_contact_item);
+
+                // save db changes
+                _scrme.SaveChanges();
+
+                customerId = _contact_item.Customer_Id;
+
+            }
+
+            // assign new case record
+            _case_item.Customer_Id = customerId;
+            _case_item.Conn_Id = connId;
+            _case_item.Opened_By = agentId;
+            _case_item.Opened_Time = DateTime.Now;
+            _case_item.Created_By = agentId;
+            _case_item.Created_Time = DateTime.Now;
+            _case_item.Updated_By = agentId;
+            _case_item.Updated_Time = DateTime.Now;
+            _case_item.Call_Type = callType;
+            _case_item.Is_Valid = "N";
+            _case_item.Type_Details = typeDetails;
+
+            // add new case record
+            _scrme.case_results.Add(_case_item);
+
+            // save db changes
+            _scrme.SaveChanges();
+
+            // obtain the new case from table "case_list"
+            List<case_result> _linq_case = (from _c in _scrme.case_results
+                                                      where _c.Internal_Case_No == _case_item.Internal_Case_No
+                                                      select _c).ToList();
+
+            return _linq_case;
+        }
 
 
 
