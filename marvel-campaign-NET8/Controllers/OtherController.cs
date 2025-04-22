@@ -1,9 +1,12 @@
 ﻿using marvel_campaign_NET8.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Data;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -30,6 +33,9 @@ namespace marvel_campaign_NET8.Controllers
         }
     }
 
+
+
+
     //[Route("api/[controller]")]
     [Route("api")]
     [ApiController]
@@ -37,9 +43,15 @@ namespace marvel_campaign_NET8.Controllers
     {
         private readonly ScrmDbContext _scrme;
 
-        public OtherController(ScrmDbContext context)
+        private readonly Scrm_SP_DbContext _scrme_sp;
+        
+
+        public OtherController(ScrmDbContext context, Scrm_SP_DbContext context_sp)
         {
             _scrme = context;
+
+            _scrme_sp = context_sp;
+
         }
 
 
@@ -446,12 +458,48 @@ namespace marvel_campaign_NET8.Controllers
 
                 return allJsonResults;
             }
-
             
         }
 
 
 
+        // Get Customer Journey
+        [Route("GetCustomerJourney")]
+        [HttpPost]
+        public async Task<IActionResult> GetCustomerJourney([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
+
+                    if (customerId == -1)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                    }
+                    else
+                    {
+                        var customerJourneys = await _scrme_sp.CustomerJourney_sp
+                            .FromSqlRaw("EXEC getCustomerJourney @customerId", new SqlParameter("@customerId", customerId))
+                            .ToListAsync();
+
+                        return Ok(new { result = AppOutp.OutputResult_SUCC, details = customerJourneys });
+                    }
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
 
 
 

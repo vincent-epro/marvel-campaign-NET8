@@ -29,6 +29,9 @@ namespace marvel_campaign_NET8
             builder.Services.AddDbContext<ScrmDbContext>(options =>
                 options.UseSqlServer(ConnectionString_campaignCRM));
 
+            builder.Services.AddDbContext<Scrm_SP_DbContext>(options =>
+                options.UseSqlServer(ConnectionString_campaignCRM));
+
 
             var app = builder.Build();
 
