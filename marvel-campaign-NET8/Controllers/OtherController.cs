@@ -276,7 +276,7 @@ namespace marvel_campaign_NET8.Controllers
                                     };
 
             // declare a json object to contain all data lists
-            JObject allJsonResults = new JObject();
+            // JObject allJsonResults = new JObject(); //old
 
             // declare a list of json objects containing the each row of data
             List<JObject> natItemList = new List<JObject>();
@@ -423,12 +423,13 @@ namespace marvel_campaign_NET8.Controllers
                 };
 
 
-                allJsonResults  = new JObject() // add to overall json object
+                JObject allJsonResults  = new JObject() // add to overall json object
                     {
                         new JProperty("result", AppOutp.OutputResult_SUCC),
                         new JProperty("details", tmp_json)
                     };
 
+                return allJsonResults;
             }
             else
             {
@@ -437,14 +438,16 @@ namespace marvel_campaign_NET8.Controllers
                     "There is no table data."
                 };
 
-                allJsonResults = new JObject()
+                JObject allJsonResults = new JObject()
                     {
                         new JProperty("result", AppOutp.OutputResult_SUCC),
                         new JProperty("details", tmp_json)
                     };
+
+                return allJsonResults;
             }
 
-            return allJsonResults;
+            
         }
 
 
