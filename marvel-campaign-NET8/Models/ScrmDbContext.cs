@@ -25,6 +25,12 @@ public partial class ScrmDbContext : DbContext
 
     public virtual DbSet<contact_list_log> contact_list_logs { get; set; }
 
+    public virtual DbSet<def_market> def_markets { get; set; }
+
+    public virtual DbSet<def_nationality> def_nationalities { get; set; }
+
+    public virtual DbSet<def_profile> def_profiles { get; set; }
+
     public virtual DbSet<field> fields { get; set; }
 
     public virtual DbSet<field_option> field_options { get; set; }
@@ -383,6 +389,61 @@ public partial class ScrmDbContext : DbContext
             entity.Property(e => e.Updated_Time).HasColumnType("datetime");
             entity.Property(e => e.Wechat_Id).HasMaxLength(100);
             entity.Property(e => e.Whatsapp_Id).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<def_market>(entity =>
+        {
+            entity.HasKey(e => e.MarketID).HasName("PK_DefMarket");
+
+            entity.ToTable("def_market");
+
+            entity.Property(e => e.MarketLocation)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.MarketName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.MarketName_TC).HasMaxLength(50);
+            entity.Property(e => e.isValid)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValue("Y")
+                .IsFixedLength();
+        });
+
+        modelBuilder.Entity<def_nationality>(entity =>
+        {
+            entity.HasKey(e => e.NationalityID).HasName("PK_DefNationality");
+
+            entity.ToTable("def_nationality");
+
+            entity.Property(e => e.NationalityID).ValueGeneratedNever();
+            entity.Property(e => e.NationalityName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.NationalityName_TC).HasMaxLength(100);
+            entity.Property(e => e.isValid)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValue("Y")
+                .IsFixedLength();
+        });
+
+        modelBuilder.Entity<def_profile>(entity =>
+        {
+            entity.HasKey(e => e.ID).HasName("PK_DefProfile");
+
+            entity.ToTable("def_profile");
+
+            entity.Property(e => e.Profile)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Profile_TC).HasMaxLength(50);
+            entity.Property(e => e.isValid)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValue("Y")
+                .IsFixedLength();
         });
 
         modelBuilder.Entity<field>(entity =>

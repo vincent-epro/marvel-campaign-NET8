@@ -1,8 +1,10 @@
 ﻿using marvel_campaign_NET8.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 
@@ -225,6 +227,226 @@ namespace marvel_campaign_NET8.Controllers
             }
             
         }
+
+
+        // Get NationalityMarketProfile
+        [Route("GetNationalityMarketProfile")]
+        [HttpPost]
+        public IActionResult GetNationalityMarketProfile([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string language = (data["Lang"] ?? "").ToString();
+
+                   // return Ok(new { result = AppOutp.OutputResult_SUCC, details = GetCRM_NationalityMarketProfile(language) }); //old
+
+                    return Content(GetCRM_NationalityMarketProfile(language).ToString(), "application/json; charset=utf-8", Encoding.UTF8);
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private JObject GetCRM_NationalityMarketProfile(string language)
+        {
+            // join tables from contact_list, def_nationality, def_market and def_profile
+            var _nationality_info = from _n in _scrme.def_nationalities
+                                    join _m in _scrme.def_markets on _n.MarketID equals _m.MarketID into _joined_nm
+                                    from _nm in _joined_nm.DefaultIfEmpty()
+                                    join _p in _scrme.def_profiles on _n.ProfileID equals _p.ID into _joined_np
+                                    from _np in _joined_np.DefaultIfEmpty()
+                                    select new
+                                    {
+                                        _n,
+                                        _nm.MarketName,
+                                        MarketValidity = _nm.isValid,
+                                        _np.Profile,
+                                        ProfileValidity = _np.isValid
+                                    };
+
+            // declare a json object to contain all data lists
+            JObject allJsonResults = new JObject();
+
+            // declare a list of json objects containing the each row of data
+            List<JObject> natItemList = new List<JObject>();
+            List<JObject> mktItemList = new List<JObject>();
+            List<JObject> profItemList = new List<JObject>();
+
+            // obtain linq result from tables
+            var _def_nationality = from _n in _scrme.def_nationalities
+                                   where _n.isValid == "Y"
+                                   orderby _n.Sort
+                                   select _n;
+
+            var _def_market = from _m in _scrme.def_markets
+                              where _m.isValid == "Y"
+                              orderby _m.Sort
+                              select _m;
+
+            var _def_profile = from _p in _scrme.def_profiles
+                               where _p.isValid == "Y"
+                               select _p;
+
+            // table has at least 1 item
+            if (_def_nationality.Count() > 0 && _def_market.Count() > 0 && _def_profile.Count() > 0)
+            {
+
+                // iterate through row items in _def_nationality
+                foreach (var _item in _def_nationality)
+                {
+                    // declare a temp json object to store each _contact_log_item
+                    JObject tempJson = new JObject();
+                    tempJson.RemoveAll(); // clear the object
+
+                    // iterate each column of _item
+                    foreach (PropertyInfo property in _item.GetType().GetProperties())
+                    {
+                        if (language == "en")
+                        {
+                            if (property.Name != "isValid" && property.Name != "NationalityName_TC")
+                            {
+                                tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
+                            }
+                        }
+                        else if (language == "tc")
+                        {
+                            // show chinese name
+                            if (property.Name != "isValid" && property.Name != "NationalityName")
+                            {
+                                if (property.Name == "NationalityName_TC")
+                                {
+                                    tempJson.Add(new JProperty("NationalityName", property.GetValue(_item)));
+                                }
+                                else
+                                {
+                                    tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
+                                }
+
+                            }
+                        }
+
+                    }
+
+                    natItemList.Add(tempJson); // add the item to list
+                }
+
+                // iterate through row items in _def_market
+                foreach (var _item in _def_market)
+                {
+                    // declare a temp json object to store each _contact_log_item
+                    JObject tempJson = new JObject();
+                    tempJson.RemoveAll(); // clear the object
+
+                    // iterate each column of _item
+                    foreach (PropertyInfo property in _item.GetType().GetProperties())
+                    {
+
+                        if (language == "en")
+                        {
+                            if (property.Name != "isValid" && property.Name != "MarketName_TC")
+                            {
+                                tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
+                            }
+                        }
+                        else if (language == "tc")
+                        {
+                            // show chinese name
+                            if (property.Name != "isValid" && property.Name != "MarketName")
+                            {
+                                if (property.Name == "MarketName_TC")
+                                {
+                                    tempJson.Add(new JProperty("MarketName", property.GetValue(_item)));
+                                }
+                                else
+                                {
+                                    tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
+                                }
+                            }
+                        }
+                    }
+                    mktItemList.Add(tempJson); // add the item to list
+                }
+
+                // iterate through row items in _def_market
+                foreach (var _item in _def_profile)
+                {
+                    // declare a temp json object to store each _contact_log_item
+                    JObject tempJson = new JObject();
+                    tempJson.RemoveAll(); // clear the object
+
+                    // iterate each column of _item
+                    foreach (PropertyInfo property in _item.GetType().GetProperties())
+                    {
+
+                        if (language == "en")
+                        {
+                            if (property.Name != "isValid" && property.Name != "Profile_TC")
+                            {
+                                tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
+                            }
+                        }
+                        else if (language == "tc")
+                        {
+                            // show chinese name
+                            if (property.Name != "isValid" && property.Name != "Profile")
+                            {
+                                if (property.Name == "Profile_TC")
+                                {
+                                    tempJson.Add(new JProperty("Profile", property.GetValue(_item)));
+                                }
+                                else
+                                {
+                                    tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
+                                }
+                            }
+                        }
+                    }
+                    profItemList.Add(tempJson); // add the item to list
+                }
+
+                JObject tmp_json = new JObject()
+                {
+                        new JProperty("NationalityArray", natItemList),
+                        new JProperty("MarketArray", mktItemList),
+                        new JProperty("ProfileArray", profItemList),
+                };
+
+
+                allJsonResults  = new JObject() // add to overall json object
+                    {
+                        new JProperty("result", AppOutp.OutputResult_SUCC),
+                        new JProperty("details", tmp_json)
+                    };
+
+            }
+            else
+            {
+                JObject tmp_json = new JObject()
+                {
+                    "There is no table data."
+                };
+
+                allJsonResults = new JObject()
+                    {
+                        new JProperty("result", AppOutp.OutputResult_SUCC),
+                        new JProperty("details", tmp_json)
+                    };
+            }
+
+            return allJsonResults;
+        }
+
 
 
 
