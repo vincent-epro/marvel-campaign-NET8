@@ -773,6 +773,7 @@ namespace marvel_campaign_NET8.Controllers
             }
         }
 
+
         private IActionResult UpdateCaseResult(JsonObject data)
         {
             int internalCaseNo = Convert.ToInt32((data["Internal_Case_No"] ?? "-1").ToString());
@@ -813,52 +814,11 @@ namespace marvel_campaign_NET8.Controllers
 
             _case.Attempt = (_case.Attempt ?? 0) + 1;
 
-            Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
+         //   Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>(); //old
             foreach (var item in data)
             {
-                string fieldName = item.Key;
-                var fieldValue = item.Value?.ToString() ?? null;
-
-                if (fieldName != "Agent_Id" && fieldName != "Token")
-                {
-                    PropertyInfo? fieldProp = new case_result().GetType().GetProperty(fieldName);
-                    Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
-                    string ftype = type.Name;
-
-
-                    if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
-                    {
-                        if (fieldValue != null)
-                        {
-                            fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
-                        }
-                        else
-                        {
-                            fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
-                        }
-                    }
-                    else
-                    {
-                        if (fieldValue != null)
-                        {
-                            fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
-                        }
-                        else
-                        {
-                            fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
-                        }
-                    }
-                }
+                SetCaseProperty(_case, item);
             }
-
-            foreach (var fields in fieldsToBeUpdatedDict)
-            {
-                // find the column name that matches with the field name in dictionary
-                PropertyInfo? properInfo = _case.GetType().GetProperty(fields.Key);
-                properInfo?.SetValue(_case, fields.Value);
-            }
-
-
 
             if (_case.Case_Flag != "temp")
             {
@@ -887,6 +847,49 @@ namespace marvel_campaign_NET8.Controllers
                 result = AppOutp.OutputResult_SUCC,
                 details = new { Case_No = _case.Case_No }
             });
+        }
+
+        private static void SetCaseProperty(case_result _case, KeyValuePair<string, JsonNode?> item)
+        {
+            string fieldName = item.Key;
+            var fieldValue = item.Value?.ToString() ?? null;
+
+            if (fieldName != "Agent_Id" && fieldName != "Token")
+            {
+                PropertyInfo? fieldProp = new case_result().GetType().GetProperty(fieldName);
+                Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
+                string ftype = type.Name;
+
+                PropertyInfo? properInfo = _case.GetType().GetProperty(fieldName);
+
+
+                if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
+                {
+                    if (fieldValue != null)
+                    {
+                        properInfo?.SetValue(_case, Convert.ChangeType(fieldValue, type));
+                        //fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
+                    }
+                    else
+                    {
+                        properInfo?.SetValue(_case, null);
+                        //fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
+                    }
+                }
+                else
+                {
+                    if (fieldValue != null)
+                    {
+                        properInfo?.SetValue(_case, Convert.ToString(fieldValue));
+                        //fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
+                    }
+                    else
+                    {
+                        properInfo?.SetValue(_case, string.Empty);
+                        //fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
+                    }
+                }
+            }
         }
 
         void CopyTo_CaseLog(case_result _case_item)
