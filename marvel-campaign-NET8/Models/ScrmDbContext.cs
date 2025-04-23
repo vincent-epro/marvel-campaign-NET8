@@ -35,6 +35,10 @@ public partial class ScrmDbContext : DbContext
 
     public virtual DbSet<field_option> field_options { get; set; }
 
+    public virtual DbSet<new_case_no> new_case_nos { get; set; }
+
+    public virtual DbSet<reply_details_history> reply_details_histories { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<call_filter>(entity =>
@@ -469,6 +473,34 @@ public partial class ScrmDbContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.Field_Option).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<new_case_no>(entity =>
+        {
+            entity.HasKey(e => e.Case_No);
+
+            entity.ToTable("new_case_no");
+
+            entity.Property(e => e.Time_Stamp).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<reply_details_history>(entity =>
+        {
+            entity.HasKey(e => e.R_Id);
+
+            entity.ToTable("reply_details_history");
+
+            entity.HasIndex(e => e.Reply_Details, "IX_Reply_Details");
+
+            entity.HasIndex(e => e.Reply_Type, "IX_Reply_Type");
+
+            entity.Property(e => e.Reply_Details)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Reply_Type)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
         });
 
         OnModelCreatingPartial(modelBuilder);

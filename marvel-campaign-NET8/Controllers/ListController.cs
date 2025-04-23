@@ -6,6 +6,7 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -746,6 +747,190 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
+
+        // Update Case
+        [Route("UpdateCase")]
+        [HttpPut]
+        public IActionResult UpdateCase([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+            
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    return UpdateCaseResult(data);
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private IActionResult UpdateCaseResult(JsonObject data)
+        {
+            int internalCaseNo = Convert.ToInt32((data["Internal_Case_No"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            // string replyType = (data["Reply_Type"] ?? "").ToString(); //old
+            // string replyDetails = (data["Reply_Details"] ?? "").ToString(); /old
+
+            new_case_no _newCaseNo = new new_case_no();
+            var _case = (from _c in _scrme.case_results
+                         where _c.Internal_Case_No == internalCaseNo
+                         select _c).SingleOrDefault();
+            if (_case == null)
+            {
+                return Ok(new
+                {
+                    result = AppOutp.OutputResult_FAIL,
+                    details = "case does not exist"
+                });
+
+            }
+            if (_case.Is_Valid == "N")
+            {
+                // add new case no
+                _newCaseNo.Time_Stamp = DateTime.Now;
+                _scrme.new_case_nos.Add(_newCaseNo);
+
+                _case.Created_By = agentId;
+                _case.Created_Time = DateTime.Now;
+                _case.Is_Valid = "Y";
+
+                _case.Attempt = 0;
+
+                _scrme.SaveChanges();
+                _case.Case_No = _newCaseNo.Case_No; // assign the newly added Case_No from new_case_no table
+            }
+            _case.Updated_By = agentId;
+            _case.Updated_Time = DateTime.Now;
+
+            _case.Attempt = (_case.Attempt ?? 0) + 1;
+
+            Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
+            foreach (var item in data)
+            {
+                string fieldName = item.Key;
+                var fieldValue = item.Value?.ToString() ?? null;
+
+                if (fieldName != "Agent_Id" && fieldName != "Token")
+                {
+                    PropertyInfo? fieldProp = new case_result().GetType().GetProperty(fieldName);
+                    Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
+                    string ftype = type.Name;
+
+
+                    if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
+                    {
+                        if (fieldValue != null)
+                        {
+                            fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
+                        }
+                        else
+                        {
+                            fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
+                        }
+                    }
+                    else
+                    {
+                        if (fieldValue != null)
+                        {
+                            fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
+                        }
+                        else
+                        {
+                            fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
+                        }
+                    }
+                }
+            }
+
+            foreach (var fields in fieldsToBeUpdatedDict)
+            {
+                // find the column name that matches with the field name in dictionary
+                PropertyInfo? properInfo = _case.GetType().GetProperty(fields.Key);
+                properInfo?.SetValue(_case, fields.Value);
+            }
+
+
+
+            if (_case.Case_Flag != "temp")
+            {
+                CopyTo_CaseLog(_case); // copy case_result data to case_result_log
+
+                // for non-empty reply details, add them to a new table
+                if (_case.Reply_Type != string.Empty && _case.Reply_Details != string.Empty)
+                {
+                    // split the reply details by ,
+                    string[]? replyDetailArray = _case.Reply_Details?.Split(','); // e.g. 92292207,91312201 to [92292207] and [91312201]
+
+                    // iterate through each reply detail and add it to the new table
+                    for (int i = 0; i < replyDetailArray?.Length; i++)
+                    {
+                        AddTo_ReplyDetails(_case, replyDetailArray[i]);
+                    }
+                }
+            }
+
+
+            // update status and save changes in db
+            _scrme.Entry(_case).State = EntityState.Modified;
+            _scrme.SaveChanges();
+            return Ok(new
+            {
+                result = AppOutp.OutputResult_SUCC,
+                details = new { Case_No = _case.Case_No }
+            });
+        }
+
+        void CopyTo_CaseLog(case_result _case_item)
+        {
+            // declare db table items
+            case_result_log _log_item = new case_result_log();
+
+            // iterate each column of the _contact_item
+            foreach (PropertyInfo logColumn in _log_item.GetType().GetProperties())
+            {
+                // insert into all fields except LogID
+                if (logColumn.Name != "LogID")
+                {
+                    // get the column name of case_result table
+                    PropertyInfo _case_column = _case_item.GetType().GetProperty(logColumn.Name);
+
+                    // insert each case field value into log field
+                    logColumn.SetValue(_log_item, _case_column.GetValue(_case_item));
+                }
+                // add new case result log record
+                _scrme.case_result_logs.Add(_log_item);
+            }
+        }
+
+        void AddTo_ReplyDetails(case_result _case_item, string replyDetails)
+        {
+            // declare db table items
+            reply_details_history _reply_item = new reply_details_history();
+
+            // make sure reply type and reply details are not empty
+            if (_case_item.Reply_Type != string.Empty && replyDetails != string.Empty)
+            {
+                // assign new reply details record
+                _reply_item.Customer_Id = _case_item.Customer_Id;
+                _reply_item.Case_No = _case_item.Case_No;
+                _reply_item.Reply_Type = _case_item.Reply_Type;
+                _reply_item.Reply_Details = replyDetails;
+                _reply_item.Updated_By = _case_item.Updated_By;
+                _reply_item.Updated_Time = _case_item.Updated_Time;
+
+                // add new reply record
+                _scrme.reply_details_histories.Add(_reply_item);
+            }
+        }
 
 
 
