@@ -679,7 +679,7 @@ namespace marvel_campaign_NET8.Controllers
                         string fieldName = item.Key;
                         var fieldValue = item.Value?.ToString() ?? null;
 
-                        var fieldType = item.Value?.GetValueKind();
+                    //    var fieldType = item.Value?.GetValueKind(); //old
 
                         if (fieldName != "Agent_Id" && fieldName != "Token")
                         {
@@ -718,8 +718,8 @@ namespace marvel_campaign_NET8.Controllers
                 foreach (var fields in fieldsToBeUpdatedDict)
                 {
                     // find the column name that matches with the field name in dictionary
-                    PropertyInfo properInfo = _customer.GetType().GetProperty(fields.Key);
-                    properInfo.SetValue(_customer, fields.Value);
+                    PropertyInfo? properInfo = _customer.GetType().GetProperty(fields.Key);
+                    properInfo?.SetValue(_customer, fields.Value);
                 }
 
 
