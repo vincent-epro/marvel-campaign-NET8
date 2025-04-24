@@ -9,6 +9,7 @@ using System.Linq;
 using System.Linq.Dynamic.Core;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace marvel_campaign_NET8.Controllers
 {
     [Route("api")]
@@ -50,7 +51,7 @@ namespace marvel_campaign_NET8.Controllers
         private JObject GetCaseResult(JsonObject data)
         {
             string anyAll = (data["anyAll"] ?? "").ToString();
-            JsonArray? searchArray = (JsonArray?)data["searchArr"];
+            JsonArray searchArray = (JsonArray?)data["searchArr"] ?? new JsonArray();
             string isCurrent = (data["Is_Current"] ?? "").ToString();
             string IsValid = (data["Is_Valid"] ?? "all").ToString();
             string countOnly = (data["Count_Only"] ?? "").ToString();
@@ -65,209 +66,23 @@ namespace marvel_campaign_NET8.Controllers
                 query_rl = query_rl.Where(r => r.Is_Valid == IsValid);
                 query_c = query_c.Where(r => r.Is_Valid == IsValid);
             }
-            StringBuilder where_a = new();
+            string where_a = string.Empty;
             List<Object> params_a = [];
+            List<string> cond_arr = [];
 
 
             foreach (var searchObj in searchArray)
             {
-                string field_name = (searchObj["field_name"] ?? "").ToString();
-                string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
-                string field_type = (searchObj["field_type"] ?? "").ToString();
-                string list_name = (searchObj["list_name"] ?? "").ToString();
-
-                string field_value = String.Empty;
-                int field_value_num = 0;
-                switch (field_type)
-                {
-                    case "number":
-                        field_value_num = Convert.ToInt32(searchObj["value"].ToString());
-                        break;
-                    default:
-                        field_value = searchObj["value"].ToString();
-                        break;
-                }
                 string cond_a = string.Empty;
-                switch (field_name)
-                {
-                    case "All_Phone_No":
-                        switch (logic_operator)
-                        {
-                            case "is" or "=":
-                                params_a.Add(field_value);
-                                cond_a += "(";
-                                cond_a += $"c.Home_No=@{params_a.Count - 1}";
-                                cond_a += $" Or c.Office_No=@{params_a.Count - 1}";
-                                cond_a += $" Or c.Mobile_No=@{params_a.Count - 1}";
-                                cond_a += $" Or c.Other_Phone_No=@{params_a.Count - 1}";
-                                cond_a += $" Or c.Fax_No=@{params_a.Count - 1}";
-                                cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
-                                cond_a += ")";
-                                break;
-                            case "is not" or "!=":
-                                params_a.Add(field_value);
-                                cond_a += "!(";
-                                cond_a += $"c.Home_No=@{params_a.Count - 1}";
-                                cond_a += $" Or c.Office_No=@{params_a.Count - 1}";
-                                cond_a += $" Or c.Mobile_No=@{params_a.Count - 1}";
-                                cond_a += $" Or c.Other_Phone_No=@{params_a.Count - 1}";
-                                cond_a += $" Or c.Fax_No=@{params_a.Count - 1}";
-                                cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
-                                cond_a += ")";
-                                break;
-                            case "contains":
-                                params_a.Add(field_value);
-                                cond_a += "(";
-                                cond_a += $"c.Home_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or c.Office_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or c.Mobile_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or c.Other_Phone_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or c.Fax_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
-                                cond_a += ")";
-                                break;
-                            case "not contains":
-                                params_a.Add(field_value);
-                                cond_a += "!(";
-                                cond_a += $"c.Home_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or c.Office_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or c.Mobile_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or c.Other_Phone_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or c.Fax_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
-                                cond_a += ")";
-                                break;
-
-                        }
-                        break;
-                    case "Email":
-                        switch (logic_operator)
-                        {
-                            case "is" or "=":
-                                params_a.Add(field_value);
-                                cond_a += "(";
-                                cond_a += $"c.Email=@{params_a.Count - 1}";
-                                cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
-                                cond_a += ")";
-                                break;
-                            case "is not" or "!=":
-                                params_a.Add(field_value);
-                                cond_a += "!(";
-                                cond_a += $"c.Email=@{params_a.Count - 1}";
-                                cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
-                                cond_a += ")";
-                                break;
-                            case "contains":
-                                params_a.Add(field_value);
-                                cond_a += "(";
-                                cond_a += $"c.Email.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
-                                cond_a += ")";
-                                break;
-                            case "not contains":
-                                params_a.Add(field_value);
-                                cond_a += "!(";
-                                cond_a += $"c.Email.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
-                                cond_a += ")";
-                                break;
-                        }
-                        break;
-                    default:
-                        string alias = (list_name == "Contact List") ? "c" : "r";
-                        switch (field_type)
-                        {
-                            case "datetime":
-                                DateTime _d1 = Convert.ToDateTime(field_value);
-                                DateTime _d2 = _d1.AddDays(1);
-
-                                switch (logic_operator)
-                                {
-                                    case "is" or "=":
-                                        params_a.Add(_d1);
-                                        cond_a += "(";
-                                        cond_a += $"{alias}.{field_name}>=@{params_a.Count - 1}";
-                                        params_a.Add(_d2);
-                                        cond_a += $" And {alias}.{field_name}<@{params_a.Count - 1}";
-                                        cond_a += ")";
-                                        break;
-                                    case "is not" or "!=":
-                                        params_a.Add(_d1);
-                                        cond_a += "(";
-                                        cond_a += $"{alias}.{field_name}<@{params_a.Count - 1}";
-                                        params_a.Add(_d2);
-                                        cond_a += $" Or {alias}.{field_name}>=@{params_a.Count - 1}";
-                                        cond_a += ")";
-                                        break;
-                                    case ">" or "<=":
-                                        DateTime _d1x = Convert.ToDateTime(field_value + " 23:59:59");
-                                        params_a.Add(_d1x);
-                                        cond_a += $"{alias}.{field_name}{logic_operator}@{params_a.Count - 1}";
-                                        break;
-                                    case ">=" or "<":
-                                        params_a.Add(_d1);
-                                        cond_a += $"{alias}.{field_name}{logic_operator}@{params_a.Count - 1}";
-                                        break;
-
-                                }
-                                break;
-                            case "string" or "null" or "":
-                                switch (logic_operator)
-                                {
-                                    case "is" or "=":
-                                        params_a.Add(field_value);
-                                        cond_a += $"{alias}.{field_name}=@{params_a.Count - 1}";
-                                        break;
-                                    case "is not" or "!=":
-                                        params_a.Add(field_value);
-                                        cond_a += $"{alias}.{field_name}!=@{params_a.Count - 1}";
-                                        break;
-                                    case "contains":
-                                        params_a.Add(field_value);
-                                        cond_a += $"{alias}.{field_name}.Contains(@{params_a.Count - 1})";
-                                        break;
-                                    case "not contains":
-                                        params_a.Add(field_value);
-                                        cond_a += $"!{alias}.{field_name}.Contains(@{params_a.Count - 1})";
-                                        break;
-                                }
-                                break;
-                            default:
-                                switch (logic_operator)
-                                {
-                                    case "is":
-                                        logic_operator = "=";
-                                        break;
-                                    case "is not":
-                                        logic_operator = "!=";
-                                        break;
-                                }
-                                if (field_type == "number")
-                                    params_a.Add(field_value_num);
-                                else
-                                    params_a.Add(field_value);
-                                cond_a += $"{alias}.{field_name} {logic_operator}@{params_a.Count - 1}";
-                                break;
-                        }
-                        break;
-                }
-                if (cond_a != string.Empty)
-                {
-                    if (where_a.Length == 0)
-                    {
-                        where_a.Append(cond_a);
-                    }
-                    else if (anyAll == "any")
-                    {
-                        where_a.Append(" or " + cond_a);
-                    }
-                    else if (anyAll == "all")
-                    {
-                        where_a.Append(" and " + cond_a);
-                    }
-                }
-
+                SetCaseCondition(searchObj, ref params_a, ref cond_a);
+                cond_arr.Add(cond_a);
             }
+
+            if (anyAll == "any")
+                where_a = string.Join(" Or ", cond_arr.Where(s => !string.IsNullOrEmpty(s)));
+            else if (anyAll == "all")
+                where_a = string.Join(" And ", cond_arr.Where(s => !string.IsNullOrEmpty(s)));
+
             IQueryable<int> _q;
             if (isCurrent != "Y")
             {
@@ -330,6 +145,116 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
+        private void SetCaseCondition(JsonNode? searchObj, ref List<object> params_a, ref string cond_a)
+        {
+            string list_name = (searchObj["list_name"] ?? "").ToString();
+            string field_name = (searchObj["field_name"] ?? "").ToString();
+            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
+            string field_type = (searchObj["field_type"] ?? "").ToString();
+            string field_value = searchObj["value"].ToString();
+
+            switch (field_name)
+            {
+                case "All_Phone_No":
+                    switch (logic_operator)
+                    {
+                        case "is" or "=":
+                            params_a.Add(field_value);
+                            cond_a += "(";
+                            cond_a += $"c.Home_No=@{params_a.Count - 1}";
+                            cond_a += $" Or c.Office_No=@{params_a.Count - 1}";
+                            cond_a += $" Or c.Mobile_No=@{params_a.Count - 1}";
+                            cond_a += $" Or c.Other_Phone_No=@{params_a.Count - 1}";
+                            cond_a += $" Or c.Fax_No=@{params_a.Count - 1}";
+                            cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
+                            cond_a += ")";
+                            break;
+                        case "is not" or "!=":
+                            params_a.Add(field_value);
+                            cond_a += "!(";
+                            cond_a += $"c.Home_No=@{params_a.Count - 1}";
+                            cond_a += $" Or c.Office_No=@{params_a.Count - 1}";
+                            cond_a += $" Or c.Mobile_No=@{params_a.Count - 1}";
+                            cond_a += $" Or c.Other_Phone_No=@{params_a.Count - 1}";
+                            cond_a += $" Or c.Fax_No=@{params_a.Count - 1}";
+                            cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
+                            cond_a += ")";
+                            break;
+                        case "contains":
+                            params_a.Add(field_value);
+                            cond_a += "(";
+                            cond_a += $"c.Home_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or c.Office_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or c.Mobile_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or c.Other_Phone_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or c.Fax_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
+                            cond_a += ")";
+                            break;
+                        case "not contains":
+                            params_a.Add(field_value);
+                            cond_a += "!(";
+                            cond_a += $"c.Home_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or c.Office_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or c.Mobile_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or c.Other_Phone_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or c.Fax_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
+                            cond_a += ")";
+                            break;
+
+                    }
+                    break;
+                case "Email":
+                    switch (logic_operator)
+                    {
+                        case "is" or "=":
+                            params_a.Add(field_value);
+                            cond_a += "(";
+                            cond_a += $"c.Email=@{params_a.Count - 1}";
+                            cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
+                            cond_a += ")";
+                            break;
+                        case "is not" or "!=":
+                            params_a.Add(field_value);
+                            cond_a += "!(";
+                            cond_a += $"c.Email=@{params_a.Count - 1}";
+                            cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
+                            cond_a += ")";
+                            break;
+                        case "contains":
+                            params_a.Add(field_value);
+                            cond_a += "(";
+                            cond_a += $"c.Email.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
+                            cond_a += ")";
+                            break;
+                        case "not contains":
+                            params_a.Add(field_value);
+                            cond_a += "!(";
+                            cond_a += $"c.Email.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
+                            cond_a += ")";
+                            break;
+                    }
+                    break;
+                default:
+                    string alias = (list_name == "Contact List") ? "c" : "r";
+                    switch (field_type)
+                    {
+                        case "datetime":
+                            SetDateTimeCondition(searchObj, alias, ref params_a, ref cond_a);
+                            break;
+                        case "string" or "null" or "":
+                            SetStringCondition(searchObj, alias, ref params_a, ref cond_a);
+                            break;
+                        default:
+                            SetDefaultCondition(searchObj, alias, ref params_a, ref cond_a);
+                            break;
+                    }
+                    break;
+            }
+        }
 
         // Manual Search
         [Route("ManualSearch")]
@@ -359,7 +284,7 @@ namespace marvel_campaign_NET8.Controllers
 
         private JObject GetCustomerResult(JsonObject data)
         {
-            string anyAll = (data["anyAll"] ?? "").ToString();
+            string anyAll = (data["anyAll"] ?? "all").ToString();
             JsonArray searchArray = (JsonArray?)data["searchArr"] ?? new JsonArray();
             string IsValid = (data["Is_Valid"] ?? "all").ToString();
             string takeAll = (data["Take_All"] ?? "").ToString();
@@ -371,177 +296,26 @@ namespace marvel_campaign_NET8.Controllers
                 query_c = query_c.Where(r => r.Is_Valid == IsValid);
             }
 
-            StringBuilder where_a = new();
+            string where_a = string.Empty;
             List<Object> params_a = new() { };
-
+            List<string> cond_arr = [];
             foreach (var searchObj in searchArray)
             {
-                string field_name = (searchObj["field_name"] ?? "").ToString();
-                string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
-                string field_type = (searchObj["field_type"] ?? "").ToString();
-
-                string field_value = String.Empty;
-                int field_value_num = 0;
-
-                switch (field_type)
-                {
-                    case "number":
-                        field_value_num = Convert.ToInt32(searchObj["value"].ToString());
-                        break;
-                    default:
-                        field_value = searchObj["value"].ToString();
-                        break;
-                }
                 string cond_a = string.Empty;
-
-                switch (field_name)
-                {
-                    case "All_Phone_No":
-                        switch (logic_operator)
-                        {
-                            case "is" or "=":
-                                params_a.Add(field_value);
-                                cond_a += "(";
-                                cond_a += $"Home_No=@{params_a.Count - 1}";
-                                cond_a += $" Or Office_No=@{params_a.Count - 1}";
-                                cond_a += $" Or Mobile_No=@{params_a.Count - 1}";
-                                cond_a += $" Or Other_Phone_No=@{params_a.Count - 1}";
-                                cond_a += $" Or Fax_No=@{params_a.Count - 1}";
-                                cond_a += ")";
-                                break;
-                            case "is not" or "!=":
-                                params_a.Add(field_value);
-                                cond_a += "!(";
-                                cond_a += $"Home_No=@{params_a.Count - 1}";
-                                cond_a += $" Or Office_No=@{params_a.Count - 1}";
-                                cond_a += $" Or Mobile_No=@{params_a.Count - 1}";
-                                cond_a += $" Or Other_Phone_No=@{params_a.Count - 1}";
-                                cond_a += $" Or Fax_No=@{params_a.Count - 1}";
-                                cond_a += ")";
-                                break;
-                            case "contains":
-                                params_a.Add(field_value);
-                                cond_a += "(";
-                                cond_a += $"Home_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or Office_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or Mobile_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or Other_Phone_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or Fax_No.Contains(@{params_a.Count - 1})";
-                                cond_a += ")";
-                                break;
-                            case "not contains":
-                                params_a.Add(field_value);
-                                cond_a += "!(";
-                                cond_a += $"Home_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or Office_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or Mobile_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or Other_Phone_No.Contains(@{params_a.Count - 1})";
-                                cond_a += $" Or Fax_No.Contains(@{params_a.Count - 1})";
-                                cond_a += ")";
-                                break;
-
-                        }
-                        break;
-                    default:
-                        switch (field_type)
-                        {
-                            case "datetime":
-                                DateTime _d1 = Convert.ToDateTime(field_value);
-                                DateTime _d2 = _d1.AddDays(1);
-
-                                switch (logic_operator)
-                                {
-                                    case "is" or "=":
-                                        params_a.Add(_d1);
-                                        cond_a += "(";
-                                        cond_a += $"{field_name}>=@{params_a.Count - 1}";
-                                        params_a.Add(_d2);
-                                        cond_a += $" And {field_name}<@{params_a.Count - 1}";
-                                        cond_a += ")";
-                                        break;
-                                    case "is not" or "!=":
-                                        params_a.Add(_d1);
-                                        cond_a += "(";
-                                        cond_a += $"{field_name}<@{params_a.Count - 1}";
-                                        params_a.Add(_d2);
-                                        cond_a += $" Or {field_name}>=@{params_a.Count - 1}";
-                                        cond_a += ")";
-                                        break;
-                                    case ">" or "<=":
-                                        DateTime _d1x = Convert.ToDateTime(field_value + " 23:59:59");
-                                        params_a.Add(_d1x);
-                                        cond_a += $"{field_name}{logic_operator}@{params_a.Count - 1}";
-                                        break;
-                                    case ">=" or "<":
-                                        params_a.Add(_d1);
-                                        cond_a += $"{field_name}{logic_operator}@{params_a.Count - 1}";
-                                        break;
-
-                                }
-                                break;
-                            case "string" or "null" or "":
-                                switch (logic_operator)
-                                {
-                                    case "is" or "=":
-                                        params_a.Add(field_value);
-                                        cond_a += $"{field_name}=@{params_a.Count - 1}";
-                                        break;
-                                    case "is not" or "!=":
-                                        params_a.Add(field_value);
-                                        cond_a += $"{field_name}!=@{params_a.Count - 1}";
-                                        break;
-                                    case "contains":
-                                        params_a.Add(field_value);
-                                        cond_a += $"{field_name}.Contains(@{params_a.Count - 1})";
-                                        break;
-                                    case "not contains":
-                                        params_a.Add(field_value);
-                                        cond_a += $"!{field_name}.Contains(@{params_a.Count - 1})";
-                                        break;
-                                }
-                                break;
-                            default:
-                                switch (logic_operator)
-                                {
-                                    case "is":
-                                        logic_operator = "=";
-                                        break;
-                                    case "is not":
-                                        logic_operator = "!=";
-                                        break;
-                                }
-                                if (field_type == "number")
-                                    params_a.Add(field_value_num);
-                                else
-                                    params_a.Add(field_value);
-                                cond_a += $"{field_name} {logic_operator}@{params_a.Count - 1}";
-                                break;
-                        }
-                        break;
-                }
-                if (cond_a != string.Empty)
-                {
-                    if (where_a.Length == 0)
-                    {
-                        where_a.Append(cond_a);
-                    }
-                    else if (anyAll == "any")
-                    {
-                        where_a.Append(" or " + cond_a);
-                    }
-                    else if (anyAll == "all")
-                    {
-                        where_a.Append(" and " + cond_a);
-                    }
-                }
+                SetCustomerCondition(searchObj, ref params_a, ref cond_a);
+                cond_arr.Add(cond_a);
             }
+            if (anyAll == "any")
+                where_a = string.Join(" Or ", cond_arr.Where(s => !string.IsNullOrEmpty(s)));
+            else if (anyAll == "all")
+                where_a = string.Join(" And ", cond_arr.Where(s => !string.IsNullOrEmpty(s)));
 
 
             List<contact_list> searchResult;
             if (takeAll == "Y")
-                searchResult = query_c.Where(where_a.ToString(), [.. params_a]).ToList();
+                searchResult = query_c.Where(where_a, [.. params_a]).ToList();
             else
-                searchResult = query_c.Where(where_a.ToString(), [.. params_a]).OrderByDescending(_s => _s.Updated_Time).Take(100).ToList();
+                searchResult = query_c.Where(where_a, [.. params_a]).OrderByDescending(_s => _s.Updated_Time).Take(100).ToList();
 
             JArray jsonResultList = [];
 
@@ -553,7 +327,7 @@ namespace marvel_campaign_NET8.Controllers
                 tempJson.Remove("Photo");
 
                 if (takeAll != "Y")
-                { 
+                {
                     bool hasCase = _scrme.case_results.Where(r => r.Customer_Id == contactList.Customer_Id && r.Is_Valid == "Y").Any();
                     tempJson.AddFirst(new JProperty("have_case", hasCase));
                 }
@@ -567,7 +341,170 @@ namespace marvel_campaign_NET8.Controllers
             };
         }
 
+        private static void SetCustomerCondition(JsonNode? searchObj, ref List<object> params_a, ref string cond_a)
+        {
+            string field_name = (searchObj["field_name"] ?? "").ToString();
+            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
+            string field_type = (searchObj["field_type"] ?? "").ToString();
+            string field_value = searchObj["value"].ToString();
 
+            switch (field_name)
+            {
+                case "All_Phone_No":
+                    switch (logic_operator)
+                    {
+                        case "is" or "=":
+                            params_a.Add(field_value);
+                            cond_a += "(";
+                            cond_a += $"Home_No=@{params_a.Count - 1}";
+                            cond_a += $" Or Office_No=@{params_a.Count - 1}";
+                            cond_a += $" Or Mobile_No=@{params_a.Count - 1}";
+                            cond_a += $" Or Other_Phone_No=@{params_a.Count - 1}";
+                            cond_a += $" Or Fax_No=@{params_a.Count - 1}";
+                            cond_a += ")";
+                            break;
+                        case "is not" or "!=":
+                            params_a.Add(field_value);
+                            cond_a += "!(";
+                            cond_a += $"Home_No=@{params_a.Count - 1}";
+                            cond_a += $" Or Office_No=@{params_a.Count - 1}";
+                            cond_a += $" Or Mobile_No=@{params_a.Count - 1}";
+                            cond_a += $" Or Other_Phone_No=@{params_a.Count - 1}";
+                            cond_a += $" Or Fax_No=@{params_a.Count - 1}";
+                            cond_a += ")";
+                            break;
+                        case "contains":
+                            params_a.Add(field_value);
+                            cond_a += "(";
+                            cond_a += $"Home_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or Office_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or Mobile_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or Other_Phone_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or Fax_No.Contains(@{params_a.Count - 1})";
+                            cond_a += ")";
+                            break;
+                        case "not contains":
+                            params_a.Add(field_value);
+                            cond_a += "!(";
+                            cond_a += $"Home_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or Office_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or Mobile_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or Other_Phone_No.Contains(@{params_a.Count - 1})";
+                            cond_a += $" Or Fax_No.Contains(@{params_a.Count - 1})";
+                            cond_a += ")";
+                            break;
+
+                    }
+                    break;
+                default:
+                    switch (field_type)
+                    {
+                        case "datetime":
+                            SetDateTimeCondition(searchObj, null, ref params_a, ref cond_a);
+                            break;
+                        case "string" or "null" or "":
+                            SetStringCondition(searchObj, null, ref params_a, ref cond_a);
+                            break;
+                        default:
+                            SetDefaultCondition(searchObj, null, ref params_a, ref cond_a);
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        private static void SetDateTimeCondition(JsonNode searchObj, string? alias,
+            ref List<object> params_a, ref string cond_a)
+        {
+            if (!string.IsNullOrEmpty(alias)) alias += ".";
+            string field_name = (searchObj["field_name"] ?? "").ToString();
+            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
+            string field_value = (searchObj["value"] ?? "").ToString();
+
+            DateTime _d1 = Convert.ToDateTime(field_value);
+            DateTime _d2 = _d1.AddDays(1);
+
+            switch (logic_operator)
+            {
+                case "is" or "=":
+                    params_a.Add(_d1);
+                    cond_a += "(";
+                    cond_a += $"{alias}{field_name}>=@{params_a.Count - 1}";
+                    params_a.Add(_d2);
+                    cond_a += $" And {alias}{field_name}<@{params_a.Count - 1}";
+                    cond_a += ")";
+                    break;
+                case "is not" or "!=":
+                    params_a.Add(_d1);
+                    cond_a += "(";
+                    cond_a += $"{alias}{field_name}<@{params_a.Count - 1}";
+                    params_a.Add(_d2);
+                    cond_a += $" Or {alias}{field_name}>=@{params_a.Count - 1}";
+                    cond_a += ")";
+                    break;
+                case ">" or "<=":
+                    DateTime _d1x = Convert.ToDateTime(field_value + " 23:59:59");
+                    params_a.Add(_d1x);
+                    cond_a += $"{alias}{field_name}{logic_operator}@{params_a.Count - 1}";
+                    break;
+                case ">=" or "<":
+                    params_a.Add(_d1);
+                    cond_a += $"{alias}{field_name}{logic_operator}@{params_a.Count - 1}";
+                    break;
+
+            }
+        }
+        private static void SetStringCondition(JsonNode searchObj, string? alias,
+            ref List<object> params_a, ref string cond_a)
+        {
+            if (!string.IsNullOrEmpty(alias)) alias += ".";
+            string field_name = (searchObj["field_name"] ?? "").ToString();
+            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
+            string field_value = (searchObj["value"] ?? "").ToString();
+            switch (logic_operator)
+            {
+                case "is" or "=":
+                    params_a.Add(field_value);
+                    cond_a += $"{alias}{field_name}=@{params_a.Count - 1}";
+                    break;
+                case "is not" or "!=":
+                    params_a.Add(field_value);
+                    cond_a += $"{alias}{field_name}!=@{params_a.Count - 1}";
+                    break;
+                case "contains":
+                    params_a.Add(field_value);
+                    cond_a += $"{alias}{field_name}.Contains(@{params_a.Count - 1})";
+                    break;
+                case "not contains":
+                    params_a.Add(field_value);
+                    cond_a += $"!{alias}{field_name}.Contains(@{params_a.Count - 1})";
+                    break;
+            }
+        }
+        private static void SetDefaultCondition(JsonNode searchObj, string? alias,
+            ref List<object> params_a, ref string cond_a)
+        {
+            if (!string.IsNullOrEmpty(alias)) alias += ".";
+            string field_name = (searchObj["field_name"] ?? "").ToString();
+            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
+            string field_type = (searchObj["field_type"] ?? "").ToString();
+            string field_value = (searchObj["value"] ?? "").ToString();
+
+            switch (logic_operator)
+            {
+                case "is":
+                    logic_operator = "=";
+                    break;
+                case "is not":
+                    logic_operator = "!=";
+                    break;
+            }
+            if (field_type == "number")
+                params_a.Add(Convert.ToInt32(field_value));
+            else
+                params_a.Add(field_value);
+            cond_a += $"{alias}{field_name} {logic_operator}@{params_a.Count - 1}";
+        }
     }
 
 }
