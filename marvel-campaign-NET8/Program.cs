@@ -42,6 +42,14 @@ namespace marvel_campaign_NET8
 
             }
 
+            app.UseCors(policy =>
+            {
+                policy.AllowAnyOrigin() // Temporarily allow all origins
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            });
+
+
             app.UseAuthorization();
 
 
