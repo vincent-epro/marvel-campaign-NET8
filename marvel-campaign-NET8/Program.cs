@@ -1,6 +1,7 @@
 
 using marvel_campaign_NET8.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 namespace marvel_campaign_NET8
 {
@@ -44,9 +45,17 @@ namespace marvel_campaign_NET8
 
             app.UseCors(policy =>
             {
-                policy.AllowAnyOrigin() // Temporarily allow all origins
-                      .AllowAnyHeader()
-                      .AllowAnyMethod();
+                policy.SetIsOriginAllowed(origin =>
+                {
+                    var host = new Uri(origin).Host;
+                    var ipAddresses = Dns.GetHostAddresses(host);
+                    return ipAddresses.Any(s => s.ToString().StartsWith("172.17."));
+
+                })
+                //policy.AllowAnyOrigin()
+                //policy.WithOrigins("http://172.17.*.*")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
             });
 
 
