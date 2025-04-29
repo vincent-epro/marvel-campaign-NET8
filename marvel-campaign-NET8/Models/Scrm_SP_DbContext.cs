@@ -18,6 +18,10 @@ public partial class Scrm_SP_DbContext : DbContext
 
     public DbSet<Dashboard_Agent_CallNature> Dashboard_Agent_CallNature_sp { get; set; }
 
+    public DbSet<OutboundBatchAssignment> OutboundBatchAssignment_sp { get; set; }
+
+    public DbSet<OutboundBatchAssignment_Agent> OutboundBatchAssignment_Agent_sp { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +30,10 @@ public partial class Scrm_SP_DbContext : DbContext
         modelBuilder.Entity<Dashboard_CallNature>().HasNoKey();
 
         modelBuilder.Entity<Dashboard_Agent_CallNature>().HasNoKey();
+
+        modelBuilder.Entity<OutboundBatchAssignment>().HasNoKey();
+
+        modelBuilder.Entity<OutboundBatchAssignment_Agent>().HasNoKey();
 
 
         OnModelCreatingPartial(modelBuilder);
@@ -68,3 +76,18 @@ public class Dashboard_Agent_CallNature
     public int? Subtotal { get; set; }
 }
 
+public class OutboundBatchAssignment
+{
+    public int? Total { get; set; }
+    public int? Assigned { get; set; }
+    public int? Unassigned { get; set; }
+}
+
+public class OutboundBatchAssignment_Agent
+{
+    public string? SellerID { get; set; }
+    public int? Agent_Id { get; set; }
+    public string? AgentName { get; set; }
+    public int? Assigned { get; set; }
+    public int? Unused { get; set; }
+}

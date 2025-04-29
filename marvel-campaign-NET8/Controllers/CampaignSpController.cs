@@ -140,6 +140,86 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Get Outbound Batch Assignment
+        [Route("GetOutboundBatchAssignment")]
+        [HttpPost]
+        public async Task<IActionResult> GetOutboundBatchAssignment([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    int batchNo = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
+
+                    if (batchNo == -1)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                    }
+                    else
+                    {
+                        var res = await _scrme_sp.OutboundBatchAssignment_sp
+                            .FromSqlRaw("EXEC getOutboundBatchAssignment @batchNo", new SqlParameter("@batchNo", batchNo))
+                            .ToListAsync();
+
+                        return Ok(new { result = AppOutp.OutputResult_SUCC, details = res });
+                    }
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+
+        // Get Outbound Batch Assignment Agent
+        [Route("GetOutboundBatchAssignment_Agent")]
+        [HttpPost]
+        public async Task<IActionResult> GetOutboundBatchAssignment_Agent([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    int batchNo = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
+
+                    if (batchNo == -1)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                    }
+                    else
+                    {
+                        var res = await _scrme_sp.OutboundBatchAssignment_Agent_sp
+                            .FromSqlRaw("EXEC getOutboundBatchAssignment_Agent @batchNo", new SqlParameter("@batchNo", batchNo))
+                            .ToListAsync();
+
+                        return Ok(new { result = AppOutp.OutputResult_SUCC, details = res });
+                    }
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+
+
+
 
     }
 }
