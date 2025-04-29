@@ -37,6 +37,14 @@ public partial class ScrmDbContext : DbContext
 
     public virtual DbSet<new_case_no> new_case_nos { get; set; }
 
+    public virtual DbSet<outbound_batch> outbound_batches { get; set; }
+
+    public virtual DbSet<outbound_call_result> outbound_call_results { get; set; }
+
+    public virtual DbSet<outbound_call_result_log> outbound_call_result_logs { get; set; }
+
+    public virtual DbSet<outbound_input_form> outbound_input_forms { get; set; }
+
     public virtual DbSet<reply_details_history> reply_details_histories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -482,6 +490,93 @@ public partial class ScrmDbContext : DbContext
             entity.ToTable("new_case_no");
 
             entity.Property(e => e.Time_Stamp).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<outbound_batch>(entity =>
+        {
+            entity.HasKey(e => e.Batch_Id);
+
+            entity.ToTable("outbound_batch");
+
+            entity.Property(e => e.Batch_Name).HasMaxLength(200);
+            entity.Property(e => e.Batch_Status).HasMaxLength(20);
+            entity.Property(e => e.Channel_Call).HasMaxLength(10);
+            entity.Property(e => e.Channel_Email).HasMaxLength(10);
+            entity.Property(e => e.Channel_SMS).HasMaxLength(10);
+            entity.Property(e => e.Channel_Whatsapp).HasMaxLength(10);
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.Email_Delivery_Status).HasMaxLength(50);
+            entity.Property(e => e.Email_Delivery_Time).HasColumnType("datetime");
+            entity.Property(e => e.Email_Subject).HasMaxLength(1000);
+            entity.Property(e => e.SMS_Delivery_Status).HasMaxLength(50);
+            entity.Property(e => e.SMS_Delivery_Time).HasColumnType("datetime");
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+            entity.Property(e => e.Whatsapp_Delivery_Status).HasMaxLength(50);
+            entity.Property(e => e.Whatsapp_Delivery_Time).HasColumnType("datetime");
+            entity.Property(e => e.Whatsapp_Tp_ID)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<outbound_call_result>(entity =>
+        {
+            entity.HasKey(e => e.Call_Lead_Id);
+
+            entity.ToTable("outbound_call_result");
+
+            entity.HasIndex(e => e.Agent_Id, "IX_Agent_Id");
+
+            entity.HasIndex(e => e.Batch_Id, "IX_Batch_Id");
+
+            entity.HasIndex(e => e.Customer_Id, "IX_Customer_Id");
+
+            entity.HasIndex(e => e.Opt_Out, "IX_Opt_Out");
+
+            entity.Property(e => e.Call_Reason).HasMaxLength(200);
+            entity.Property(e => e.Call_Status).HasMaxLength(200);
+            entity.Property(e => e.Callback_Time).HasColumnType("datetime");
+            entity.Property(e => e.Opt_Out).HasMaxLength(20);
+            entity.Property(e => e.Reply_Conn_Id)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Reply_Details)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Transaction_Time).HasColumnType("datetime");
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<outbound_call_result_log>(entity =>
+        {
+            entity.HasKey(e => e.LogID);
+
+            entity.ToTable("outbound_call_result_log");
+
+            entity.HasIndex(e => e.Call_Lead_Id, "IX_Call_Lead_Id");
+
+            entity.Property(e => e.Call_Reason).HasMaxLength(200);
+            entity.Property(e => e.Call_Status).HasMaxLength(200);
+            entity.Property(e => e.Callback_Time).HasColumnType("datetime");
+            entity.Property(e => e.Opt_Out).HasMaxLength(20);
+            entity.Property(e => e.Reply_Conn_Id)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Reply_Details)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Transaction_Time).HasColumnType("datetime");
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<outbound_input_form>(entity =>
+        {
+            entity.HasKey(e => e.Form_Id);
+
+            entity.ToTable("outbound_input_form");
+
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.Form_Name).HasMaxLength(200);
+            entity.Property(e => e.Form_Status).HasMaxLength(20);
         });
 
         modelBuilder.Entity<reply_details_history>(entity =>
