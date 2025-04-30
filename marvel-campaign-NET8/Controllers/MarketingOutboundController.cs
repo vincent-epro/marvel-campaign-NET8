@@ -1,8 +1,12 @@
 ﻿using marvel_campaign_NET8.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Linq.Dynamic.Core;
 using Z.EntityFramework.Plus;
 
 namespace marvel_campaign_NET8.Controllers
@@ -472,7 +476,7 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
-        private IQueryable<contact_list> FilterByCommunicationChannels(IQueryable<contact_list> query, JsonObject data)
+        private static IQueryable<contact_list> FilterByCommunicationChannels(IQueryable<contact_list> query, JsonObject data)
         {
             string channel_call = (data["Channel_Call"] ?? "").ToString();
             string channel_email = (data["Channel_Email"] ?? "").ToString();
@@ -503,6 +507,119 @@ namespace marvel_campaign_NET8.Controllers
             return query;
 
         }
+
+
+        // Search Customer For Outbound
+        [Route("SearchCustomerForOutbound")]
+        [HttpPost]
+        public IActionResult SearchCustomerForOutbound([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    return Content(SearchCRM_CustomerForOutbound(data).ToString(), "application/json; charset=utf-8", Encoding.UTF8);
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private JObject SearchCRM_CustomerForOutbound(JsonObject data)
+        {
+            IQueryable<contact_list> _return_customer = GetCRM_CustomerForOutbound(data);
+
+            // declare a list of json objects containing the each row of data
+            List<JObject> _con_history_list = new List<JObject>();
+
+            // declare a json object to contain all rows of data
+            // JObject allJsonResults = new JObject(); //
+            
+            int draw = Convert.ToInt32((data["draw"] ?? "-1").ToString());
+
+            var start = (data["start"] ?? "").ToString();
+            var length = (data["length"] ?? "").ToString();
+
+
+            //  int col_index = (int)data.order[0].column.Value; //
+            int col_index = data["order"]?[0]?["column"]?.GetValue<int>() ?? -1;
+
+       //     string sortColumn = data.columns[col_index].data.Value;//
+              string sortColumn = data["columns"]?[col_index]?["data"]?.GetValue<string>() ?? string.Empty;
+
+           // var sortColumnDir = data.order[0].dir.Value; //
+            var sortColumnDir = data["order"]?[0]?["dir"]?.GetValue<string>() ?? "asc";
+
+
+            int pageSize = length != null ? Convert.ToInt32(length) : 0;
+            int skip = start != null ? Convert.ToInt32(start) : 0;
+            int recordsTotal = 0;
+
+
+            //Sorting    
+            if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
+            {
+                bool isDesc;
+
+                if (sortColumnDir == "desc")
+                    isDesc = true;
+                else
+                    isDesc = false;
+
+                _return_customer = _return_customer.OrderBy(sortColumn + (isDesc ? " descending" : ""));
+            }
+
+
+            //total number of rows count     
+            recordsTotal = _return_customer.Count();
+            //Paging     
+            var data2 = _return_customer.Skip(skip).Take(pageSize).ToList();
+
+            // iterate through each row of data
+            foreach (var _c_item in data2)
+            {
+                // declare a temp json object to store each column of data
+                JObject tempJson = new JObject();
+
+                tempJson.RemoveAll(); // clear the temp object
+
+                // iterate through each column
+                foreach (PropertyInfo property in _c_item.GetType().GetProperties())
+                {
+
+                    if (property.Name != "Photo")
+                    {
+                        tempJson.Add(new JProperty(property.Name, property.GetValue(_c_item)));
+                    }
+                }
+
+                _con_history_list.Add(tempJson);
+            }
+
+            // set up _all_results json data
+            JObject allJsonResults = new JObject()
+            {
+                new JProperty("result", "success"),
+                new JProperty("draw", draw),
+                new JProperty("recordsFiltered", recordsTotal),
+                new JProperty("recordsTotal", recordsTotal),
+                new JProperty("details", _con_history_list)
+            };
+
+            // return all results in json format
+            return allJsonResults;
+        }
+
+
 
 
 
