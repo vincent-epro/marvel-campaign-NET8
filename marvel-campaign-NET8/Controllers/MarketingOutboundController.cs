@@ -1,6 +1,7 @@
 ﻿using marvel_campaign_NET8.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Z.EntityFramework.Plus;
 
@@ -304,6 +305,204 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
+
+        // Create Outbound Batch
+        [Route("CreateOutboundBatch")]
+        [HttpPost]
+        public IActionResult CreateOutboundBatch([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    int batchNo = CreateCRM_OutboundBatch(data);
+
+                    if (batchNo != -1)
+                    {
+                        return Ok(new
+                        {
+                            result = AppOutp.OutputResult_SUCC,
+                            details = new
+                            {
+                                Batch_Id = batchNo
+                            }
+                        });
+                    }
+                    else
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "no customer record to create batch" });
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private int CreateCRM_OutboundBatch(JsonObject data)
+        {
+            IQueryable<contact_list> _return_customer = GetCRM_CustomerForOutbound(data);
+
+            if (data["excludeArr"] != null)
+            {
+                //  int[]? excludeArr_cust = data["excludeArr"]?.Deserialize<int[]>(); //
+                List<int>? excludeArr_cust = data["excludeArr"]?.Deserialize<List<int>>();
+
+                if (excludeArr_cust?.Count > 0)
+                    _return_customer = _return_customer.Where(c => !excludeArr_cust.Contains(c.Customer_Id));
+
+            }
+
+            int tot_count = _return_customer.Count();
+
+            if (tot_count > 0)
+            {
+                string batch_name = (data["Batch_Name"] ?? "").ToString();
+                int form_id = Convert.ToInt32((data["Form_Id"] ?? "-1").ToString());
+                int agent_id = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+                string batch_details = (data["Batch_Details"] ?? "").ToString();
+
+                string channel_call = (data["Channel_Call"] ?? "").ToString();
+                string channel_email = (data["Channel_Email"] ?? "").ToString();
+                string channel_sms = (data["Channel_SMS"] ?? "").ToString();
+                string channel_whatsapp = (data["Channel_Whatsapp"] ?? "").ToString();
+
+                string gender = (data["Gender"] ?? "").ToString();
+
+                string age_from = (data["Age_From"] ?? "").ToString();
+                string age_to = (data["Age_To"] ?? "").ToString();
+
+                string recordrange_from = (data["Recordrange_From"] ?? "").ToString();
+                string recordrange_to = (data["Recordrange_To"] ?? "").ToString();
+
+
+                // declare db table items
+                outbound_batch _cpn_item = new outbound_batch();
+
+                _cpn_item.Batch_Name = batch_name;
+                _cpn_item.Batch_Status = "Active";
+                _cpn_item.Form_Id = form_id;
+                _cpn_item.Channel_Call = channel_call;
+                _cpn_item.Channel_Email = channel_email;
+                _cpn_item.Channel_SMS = channel_sms;
+                _cpn_item.Channel_Whatsapp = channel_whatsapp;
+                _cpn_item.Total_Leads = tot_count;
+                _cpn_item.Created_By = agent_id;
+                _cpn_item.Created_Time = DateTime.Now;
+                _cpn_item.Batch_Details = batch_details;
+                _cpn_item.Criteria = "Gender: " + gender + " | " + "Age_From: " + age_from + " | " + "Age_To: " + age_to + " | "
+                                    + "Channel_Call: " + channel_call + " | " + "Channel_Email: " + channel_email + " | "
+                                    + "Channel_SMS: " + channel_sms + " | " + "Channel_Whatsapp: " + channel_whatsapp + " | "
+                                    + "Recordrange_From: " + recordrange_from + " | "
+                                    + "Recordrange_To: " + recordrange_to;
+
+
+                // add new record
+                _scrme.outbound_batches.Add(_cpn_item);
+
+                // save db changes
+                _scrme.SaveChanges();
+
+                int new_batch_id = _cpn_item.Batch_Id;
+
+                _return_customer
+                  .InsertFromQuery("outbound_call_result", x => new {
+                      Customer_Id = x.Customer_Id,
+                      Batch_Id = new_batch_id,
+                      Form_Id = form_id,
+                      Attempt = 0
+                  });
+
+
+                return new_batch_id;
+            }
+            else
+            {
+                return -1;
+            }
+
+
+        }
+
+        private IQueryable<contact_list> GetCRM_CustomerForOutbound(JsonObject data)
+        {
+            string gender = (data["Gender"] ?? "").ToString();
+
+            int age_from = Convert.ToInt32((data["Age_From"] ?? "-1").ToString());
+            int age_to = Convert.ToInt32((data["Age_To"] ?? "-1").ToString());
+
+            int recordrange_from = Convert.ToInt32((data["Recordrange_From"] ?? "-1").ToString());
+            int recordrange_to = Convert.ToInt32((data["Recordrange_To"] ?? "-1").ToString());
+
+            IQueryable<contact_list> _pro = from _r in _scrme.contact_lists
+                                                 where _r.Is_Valid == "Y"
+                                                 select _r;
+
+            if (gender != "")
+            {
+                _pro = _pro.Where(_c => _c.Gender == gender);
+            }
+
+            if (age_from != -1 && age_to != -1)
+            {
+                DateTime today = DateTime.Today;
+                DateTime min = today.AddYears(-(age_to + 1));
+                DateTime max = today.AddYears(-age_from);
+
+                _pro = _pro.Where(e => e.DOB != null && e.DOB > min && e.DOB <= max);
+            }
+
+            _pro = FilterByCommunicationChannels(_pro, data);
+
+            if (recordrange_from != -1 && recordrange_to != -1)
+            {
+                _pro = _pro.OrderBy(_c => _c.Customer_Id).Skip(recordrange_from - 1).Take(recordrange_to - recordrange_from + 1);
+            }
+
+            return _pro;
+
+        }
+
+        private IQueryable<contact_list> FilterByCommunicationChannels(IQueryable<contact_list> query, JsonObject data)
+        {
+            string channel_call = (data["Channel_Call"] ?? "").ToString();
+            string channel_email = (data["Channel_Email"] ?? "").ToString();
+            string channel_sms = (data["Channel_SMS"] ?? "").ToString();
+            string channel_whatsapp = (data["Channel_Whatsapp"] ?? "").ToString();
+
+            if (channel_call == "Y")
+            {
+                query = query.Where(_c => !(_c.Home_No == null || _c.Home_No.Equals("")) ||
+                                        !(_c.Office_No == null || _c.Office_No.Equals("")) ||
+                                        !(_c.Mobile_No == null || _c.Mobile_No.Equals("")) ||
+                                        !(_c.Fax_No == null || _c.Fax_No.Equals("")) ||
+                                        !(_c.Other_Phone_No == null || _c.Other_Phone_No.Equals(""))
+                                        );
+
+            }
+
+            if (channel_email == "Y")
+            {
+                query = query.Where(_c => !(_c.Email == null || _c.Email.Equals("")));
+            }
+
+            if (channel_sms == "Y" || channel_whatsapp == "Y")
+            {
+                query = query.Where(_c => !(_c.Mobile_No == null || _c.Mobile_No.Equals("")));
+            }
+
+            return query;
+
+        }
 
 
 
