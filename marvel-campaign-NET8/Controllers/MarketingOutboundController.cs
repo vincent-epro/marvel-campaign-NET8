@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Nodes;
+using Z.EntityFramework.Plus;
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -164,6 +165,144 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
+
+        // Get Outbound Batch Lead Count
+        [Route("GetOutboundBatchLeadCount")]
+        [HttpPost]
+        public IActionResult GetOutboundBatchLeadCount([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                int leadcount = GetCRM_BatchLead(data).Count();
+
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    return Ok(new
+                    {
+                        result = AppOutp.OutputResult_SUCC,
+                        details = new
+                        {
+                            LeadCount = leadcount
+                        }
+                    });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private IQueryable<outbound_call_result> GetCRM_BatchLead(JsonObject data)
+        {
+            int batch_id = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
+            int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+
+            string call_status = (data["Call_Status"] ?? "").ToString();
+            string call_reason = (data["Call_Reason"] ?? "").ToString();
+
+
+            IQueryable<outbound_call_result> _pro = from _r in _scrme.outbound_call_results
+                                                    where _r.Batch_Id == batch_id &&
+                                                         (_r.Opt_Out == null || !_r.Opt_Out.Equals("Y"))
+                                                    select _r;
+
+            if (assign_from == 0)
+            {
+                _pro = _pro.Where(_c => _c.Attempt == 0 && _c.Agent_Id == null);
+
+            }
+            else
+            {
+                if (call_status == "NewLead")
+                {
+                    _pro = _pro.Where(_c => _c.Attempt == 0 && _c.Agent_Id == assign_from);
+                }
+                else
+                {
+                    _pro = _pro.Where(_c => _c.Call_Status == call_status && _c.Call_Reason == call_reason && _c.Agent_Id == assign_from);
+                }
+            }
+
+            return _pro;
+        }
+
+
+        // Assign Outbound Batch Lead
+        [Route("AssignOutboundBatchLead")]
+        [HttpPost]
+        public IActionResult AssignOutboundBatchLead([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    int upd_result = AssignCRM_OutboundBatchLead(data);
+
+                    if (upd_result == -1)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "No lead / Not enough lead to assign" });
+
+                    }
+                    else
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_SUCC, details = "Assignment done" });
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private int AssignCRM_OutboundBatchLead(JsonObject data)
+        {
+            IQueryable<outbound_call_result> _return_lead = GetCRM_BatchLead(data);
+
+            int tot_count = _return_lead.Count();
+
+            int assign_total = Convert.ToInt32((data["Assign_Total"] ?? "-1").ToString());
+
+
+            if (tot_count > 0 && assign_total > 0 && tot_count >= assign_total)
+            {
+                int assign_to = Convert.ToInt32((data["Assign_To"] ?? "-1").ToString());
+
+                if (assign_to == 0)
+                {
+                    _return_lead.OrderBy(x => Guid.NewGuid()).Take(assign_total)
+                        .Update(x => new outbound_call_result { Agent_Id = null });
+                }
+                else
+                {
+                    _return_lead.OrderBy(x => Guid.NewGuid()).Take(assign_total)
+                        .Update(x => new outbound_call_result { Agent_Id = assign_to });
+                }
+
+                return 1;
+            }
+            else
+            {
+                return -1;
+            }
+
+        }
 
 
 
