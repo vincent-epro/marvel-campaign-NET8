@@ -590,7 +590,7 @@ namespace marvel_campaign_NET8.Controllers
                 // declare a temp json object to store each column of data
                 JObject tempJson = new JObject();
 
-                tempJson.RemoveAll(); // clear the temp object
+             //   tempJson.RemoveAll(); // clear the temp object
 
                 // iterate through each column
                 foreach (PropertyInfo property in _c_item.GetType().GetProperties())
