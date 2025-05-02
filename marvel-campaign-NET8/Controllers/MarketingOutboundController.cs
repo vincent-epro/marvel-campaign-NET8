@@ -659,7 +659,6 @@ namespace marvel_campaign_NET8.Controllers
             // if there is at least 1 
             if (_pro != null)
             {
-
                 Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
 
                 // iterate through the form data and assign the field name and field value to dictionary
@@ -700,8 +699,8 @@ namespace marvel_campaign_NET8.Controllers
                             }
                         }
                     }
+
                 }
-                               
 
                 foreach (var fields in fieldsToBeUpdatedDict)
                 {
@@ -714,6 +713,110 @@ namespace marvel_campaign_NET8.Controllers
                 _pro.Updated_By = agentId;
                 _pro.Updated_Time = DateTime.Now;
 
+                _scrme.SaveChanges();
+                
+            }
+
+        }
+
+
+        // Update Outbound CallList
+        [Route("UpdateOutboundCallList")]
+        [HttpPut]
+        public IActionResult UpdateOutboundCallList([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    UpdateCRM_OutboundCallList(data);
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = "record updated" });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private void UpdateCRM_OutboundCallList(JsonObject data)
+        {
+            int pID = Convert.ToInt32((data["Call_Lead_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+
+            var _pro = (from _c in _scrme.outbound_call_results
+                        where _c.Call_Lead_Id == pID
+                        select _c).SingleOrDefault<outbound_call_result>();
+
+            // if there is at least 1 
+            if (_pro != null)
+            {
+                Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
+
+                // iterate through the form data and assign the field name and field value to dictionary
+                foreach (var item in data)
+                {
+
+                    string fieldName = item.Key;
+                    var fieldValue = item.Value?.ToString() ?? null;
+
+                    //    var fieldType = item.Value?.GetValueKind(); //old
+
+                    if (fieldName != "Agent_Id" && fieldName != "Token")
+                    {
+                        PropertyInfo? fieldProp = new outbound_call_result().GetType().GetProperty(fieldName);
+                        Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
+                        string ftype = type.Name;
+
+                        if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
+                        {
+                            if (fieldValue != null)
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
+                            }
+                            else
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
+                            }
+                        }
+                        else
+                        {
+                            if (fieldValue != null)
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
+                            }
+                            else
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
+                            }
+                        }
+                    }
+                }
+
+
+                foreach (var fields in fieldsToBeUpdatedDict)
+                {
+                    // find the column name that matches with the field name in dictionary
+                    PropertyInfo? properInfo = _pro.GetType().GetProperty(fields.Key);
+                    properInfo?.SetValue(_pro, fields.Value);
+                }
+
+                _pro.Transaction_Time = DateTime.Now;
+
+                _pro.Updated_By = agentId;
+                _pro.Updated_Time = DateTime.Now;
+                _pro.Attempt = _pro.Attempt + 1;
+
+
+                CopyTo_OutboundLog(_pro);
+
 
                 _scrme.SaveChanges();
 
@@ -721,6 +824,28 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
+        void CopyTo_OutboundLog(outbound_call_result _ob_item)
+        {
+            // declare db table items
+            outbound_call_result_log _log_item = new outbound_call_result_log();
+
+            // iterate each column of the _contact_item
+            foreach (PropertyInfo logColumn in _log_item.GetType().GetProperties())
+            {
+                // insert into all fields except LogID
+                if (logColumn.Name != "LogID")
+                {
+                    // get the column name of table
+                    PropertyInfo? _ob_column = _ob_item.GetType().GetProperty(logColumn.Name);
+
+                    // insert each field value into log field
+                    logColumn.SetValue(_log_item, _ob_column.GetValue(_ob_item));
+                }
+
+                // add new log record
+                _scrme.outbound_call_result_logs.Add(_log_item);
+            }
+        }
 
 
 
