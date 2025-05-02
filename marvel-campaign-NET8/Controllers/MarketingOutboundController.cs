@@ -620,6 +620,108 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Update Outbound Batch
+        [Route("UpdateOutboundBatch")]
+        [HttpPut]
+        public IActionResult UpdateOutboundBatch([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    UpdateCRM_OutboundBatch(data);
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = "record updated" });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+
+        private void UpdateCRM_OutboundBatch(JsonObject data)
+        {
+            int pID = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+
+            var _pro = (from _c in _scrme.outbound_batches
+                        where _c.Batch_Id == pID // && _c.Channel_SMS == "Y"
+                        select _c).SingleOrDefault<outbound_batch>();
+
+            // if there is at least 1 
+            if (_pro != null)
+            {
+
+                Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
+
+                // iterate through the form data and assign the field name and field value to dictionary
+                foreach (var item in data)
+                {
+
+                    string fieldName = item.Key;
+                    var fieldValue = item.Value?.ToString() ?? null;
+
+                    //    var fieldType = item.Value?.GetValueKind(); //old
+
+                    if (fieldName != "Agent_Id" && fieldName != "Token")
+                    {
+                        PropertyInfo? fieldProp = new outbound_batch().GetType().GetProperty(fieldName);
+                        Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
+                        string ftype = type.Name;
+
+                        if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
+                        {
+                            if (fieldValue != null)
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
+                            }
+                            else
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
+                            }
+                        }
+                        else
+                        {
+                            if (fieldValue != null)
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
+                            }
+                            else
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
+                            }
+                        }
+                    }
+                }
+                               
+
+                foreach (var fields in fieldsToBeUpdatedDict)
+                {
+                    // find the column name that matches with the field name in dictionary
+                    PropertyInfo? properInfo = _pro.GetType().GetProperty(fields.Key);
+                    properInfo?.SetValue(_pro, fields.Value);
+                }
+
+
+                _pro.Updated_By = agentId;
+                _pro.Updated_Time = DateTime.Now;
+
+
+                _scrme.SaveChanges();
+
+            }
+
+        }
+
+
 
 
 
