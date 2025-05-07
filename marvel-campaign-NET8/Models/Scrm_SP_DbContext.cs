@@ -22,6 +22,12 @@ public partial class Scrm_SP_DbContext : DbContext
 
     public DbSet<OutboundBatchAssignment_Agent> OutboundBatchAssignment_Agent_sp { get; set; }
 
+    public DbSet<OBBatchAssignment> OBBatchAssignment_sp { get; set; }
+
+    public DbSet<OBBatchAssignment_Agent> OBBatchAssignment_Agent_sp { get; set; }
+
+    public DbSet<OBProductPrice> OBProductPrice_sp { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +40,12 @@ public partial class Scrm_SP_DbContext : DbContext
         modelBuilder.Entity<OutboundBatchAssignment>().HasNoKey();
 
         modelBuilder.Entity<OutboundBatchAssignment_Agent>().HasNoKey();
+
+        modelBuilder.Entity<OBBatchAssignment>().HasNoKey();
+
+        modelBuilder.Entity<OBBatchAssignment_Agent>().HasNoKey();
+
+        modelBuilder.Entity<OBProductPrice>().HasNoKey();
 
 
         OnModelCreatingPartial(modelBuilder);
@@ -90,4 +102,25 @@ public class OutboundBatchAssignment_Agent
     public string? AgentName { get; set; }
     public int? Assigned { get; set; }
     public int? Unused { get; set; }
+}
+
+public class OBBatchAssignment
+{
+    public int? Total { get; set; }
+    public int? Assigned { get; set; }
+    public int? Unassigned { get; set; }
+}
+
+public partial class OBBatchAssignment_Agent
+{
+    public string? SellerID { get; set; }
+    public int? Agent_Id { get; set; }
+    public string? AgentName { get; set; }
+    public int? Assigned { get; set; }
+    public int? Unused { get; set; }
+}
+
+public class OBProductPrice
+{
+    public string? Product_Price { get; set; }
 }

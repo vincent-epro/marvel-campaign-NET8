@@ -218,6 +218,123 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Get OB Batch Assignment
+        [Route("GetOBBatchAssignment")]
+        [HttpPost]
+        public async Task<IActionResult> GetOBBatchAssignment([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string batchcode = (data["Batch_Code"] ?? "").ToString();
+                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+                    if (batchcode == string.Empty || campaigncode == string.Empty)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                    }
+                    else
+                    {
+                        var res = await _scrme_sp.OBBatchAssignment_sp
+                            .FromSqlRaw("EXEC getOBBatchAssignment @batchcode, @campaigncode",
+                            new SqlParameter("@batchcode", batchcode),
+                            new SqlParameter("@campaigncode", campaigncode))
+                            .ToListAsync();
+
+                        return Ok(new { result = AppOutp.OutputResult_SUCC, details = res });
+                    }
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+
+        // Get OB Batch Assignment Agent
+        [Route("GetOBBatchAssignment_Agent")]
+        [HttpPost]
+        public async Task<IActionResult> GetOBBatchAssignment_Agent([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string batchcode = (data["Batch_Code"] ?? "").ToString();
+                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+                    if (batchcode == string.Empty || campaigncode == string.Empty)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                    }
+                    else
+                    {
+                        var res = await _scrme_sp.OBBatchAssignment_Agent_sp
+                            .FromSqlRaw("EXEC getOBBatchAssignment_Agent @batchcode, @campaigncode",
+                            new SqlParameter("@batchcode", batchcode),
+                            new SqlParameter("@campaigncode", campaigncode))
+                            .ToListAsync();
+
+                        return Ok(new { result = AppOutp.OutputResult_SUCC, details = res });
+                    }
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+
+        // Get OB Product Price
+        [Route("GetOBProductPrice")]
+        [HttpPost]
+        public async Task<IActionResult> GetOBProductPrice([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+
+                    var dc = await _scrme_sp.OBProductPrice_sp
+                        .FromSqlRaw("EXEC getOBProductPrice")
+                        .ToListAsync(); // Ensuring async execution
+
+                    var productPrice = dc.Select(x => x.Product_Price).ToList();
+
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = productPrice });
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
 
 
 
