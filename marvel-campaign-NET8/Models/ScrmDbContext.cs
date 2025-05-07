@@ -37,6 +37,22 @@ public partial class ScrmDbContext : DbContext
 
     public virtual DbSet<new_case_no> new_case_nos { get; set; }
 
+    public virtual DbSet<ob_assignment_history> ob_assignment_histories { get; set; }
+
+    public virtual DbSet<ob_batch> ob_batches { get; set; }
+
+    public virtual DbSet<ob_campaign> ob_campaigns { get; set; }
+
+    public virtual DbSet<ob_header_mapping> ob_header_mappings { get; set; }
+
+    public virtual DbSet<ob_input_form> ob_input_forms { get; set; }
+
+    public virtual DbSet<ob_result> ob_results { get; set; }
+
+    public virtual DbSet<ob_result_log> ob_result_logs { get; set; }
+
+    public virtual DbSet<ob_sales_order> ob_sales_orders { get; set; }
+
     public virtual DbSet<outbound_batch> outbound_batches { get; set; }
 
     public virtual DbSet<outbound_call_result> outbound_call_results { get; set; }
@@ -490,6 +506,159 @@ public partial class ScrmDbContext : DbContext
             entity.ToTable("new_case_no");
 
             entity.Property(e => e.Time_Stamp).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ob_assignment_history>(entity =>
+        {
+            entity.HasKey(e => e.A_Id);
+
+            entity.ToTable("ob_assignment_history");
+
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ob_batch>(entity =>
+        {
+            entity.HasKey(e => e.B_Id);
+
+            entity.ToTable("ob_batch");
+
+            entity.Property(e => e.Batch_Code).HasMaxLength(100);
+            entity.Property(e => e.Batch_End_Date).HasColumnType("datetime");
+            entity.Property(e => e.Batch_Start_Date).HasColumnType("datetime");
+            entity.Property(e => e.Batch_Status).HasMaxLength(20);
+            entity.Property(e => e.Campaign_Code).HasMaxLength(100);
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ob_campaign>(entity =>
+        {
+            entity.HasKey(e => e.Campaign_Id);
+
+            entity.ToTable("ob_campaign");
+
+            entity.Property(e => e.Campaign_Code).HasMaxLength(100);
+            entity.Property(e => e.Campaign_Description).HasMaxLength(1000);
+            entity.Property(e => e.Campaign_Status).HasMaxLength(20);
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.Form_Name).HasMaxLength(200);
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ob_header_mapping>(entity =>
+        {
+            entity.HasKey(e => e.H_Id);
+
+            entity.ToTable("ob_header_mapping");
+
+            entity.Property(e => e.Campaign_Code).HasMaxLength(100);
+            entity.Property(e => e.Check_Type).HasMaxLength(20);
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.DB_Field_Name).HasMaxLength(100);
+            entity.Property(e => e.Excel_Field_Name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<ob_input_form>(entity =>
+        {
+            entity.HasKey(e => e.Form_Id);
+
+            entity.ToTable("ob_input_form");
+
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.Form_Name).HasMaxLength(200);
+            entity.Property(e => e.Form_Status).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<ob_result>(entity =>
+        {
+            entity.HasKey(e => e.Call_Id);
+
+            entity.ToTable("ob_result");
+
+            entity.HasIndex(e => e.Agent_Id, "IX_Agent_Id");
+
+            entity.HasIndex(e => e.Batch_Code, "IX_Batch_Code");
+
+            entity.HasIndex(e => e.Campaign_Code, "IX_Campaign_Code");
+
+            entity.Property(e => e.Batch_Code).HasMaxLength(100);
+            entity.Property(e => e.Call_Reason).HasMaxLength(200);
+            entity.Property(e => e.Call_Status).HasMaxLength(200);
+            entity.Property(e => e.Callback_Time).HasColumnType("datetime");
+            entity.Property(e => e.Campaign_Code).HasMaxLength(100);
+            entity.Property(e => e.DOB).HasColumnType("datetime");
+            entity.Property(e => e.First_Name).HasMaxLength(100);
+            entity.Property(e => e.Gender).HasMaxLength(20);
+            entity.Property(e => e.Home_No).HasMaxLength(100);
+            entity.Property(e => e.Join_Date).HasColumnType("datetime");
+            entity.Property(e => e.Last_Name).HasMaxLength(100);
+            entity.Property(e => e.Mobile_No).HasMaxLength(100);
+            entity.Property(e => e.Office_No).HasMaxLength(100);
+            entity.Property(e => e.Opt_Out).HasMaxLength(20);
+            entity.Property(e => e.Other_Phone_No).HasMaxLength(100);
+            entity.Property(e => e.Plan_Code).HasMaxLength(100);
+            entity.Property(e => e.Product_Code).HasMaxLength(100);
+            entity.Property(e => e.Reply_Conn_Id)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Reply_Details)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Transaction_Time).HasColumnType("datetime");
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ob_result_log>(entity =>
+        {
+            entity.HasKey(e => e.LogID);
+
+            entity.ToTable("ob_result_log");
+
+            entity.HasIndex(e => e.Call_Id, "IX_Call_Id");
+
+            entity.Property(e => e.Batch_Code).HasMaxLength(100);
+            entity.Property(e => e.Call_Reason).HasMaxLength(200);
+            entity.Property(e => e.Call_Status).HasMaxLength(200);
+            entity.Property(e => e.Callback_Time).HasColumnType("datetime");
+            entity.Property(e => e.Campaign_Code).HasMaxLength(100);
+            entity.Property(e => e.DOB).HasColumnType("datetime");
+            entity.Property(e => e.First_Name).HasMaxLength(100);
+            entity.Property(e => e.Gender).HasMaxLength(20);
+            entity.Property(e => e.Home_No).HasMaxLength(100);
+            entity.Property(e => e.Join_Date).HasColumnType("datetime");
+            entity.Property(e => e.Last_Name).HasMaxLength(100);
+            entity.Property(e => e.Mobile_No).HasMaxLength(100);
+            entity.Property(e => e.Office_No).HasMaxLength(100);
+            entity.Property(e => e.Opt_Out).HasMaxLength(20);
+            entity.Property(e => e.Other_Phone_No).HasMaxLength(100);
+            entity.Property(e => e.Plan_Code).HasMaxLength(100);
+            entity.Property(e => e.Product_Code).HasMaxLength(100);
+            entity.Property(e => e.Reply_Conn_Id)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Reply_Details)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Transaction_Time).HasColumnType("datetime");
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ob_sales_order>(entity =>
+        {
+            entity.HasKey(e => e.Sa_Id);
+
+            entity.ToTable("ob_sales_order");
+
+            entity.HasIndex(e => e.Call_Id, "IX_Call_Id");
+
+            entity.Property(e => e.Batch_Code).HasMaxLength(100);
+            entity.Property(e => e.Campaign_Code).HasMaxLength(100);
+            entity.Property(e => e.Created_Time).HasColumnType("datetime");
+            entity.Property(e => e.Order_Status).HasMaxLength(20);
+            entity.Property(e => e.Plan_Code).HasMaxLength(100);
+            entity.Property(e => e.Price).HasMaxLength(100);
+            entity.Property(e => e.Product_Code).HasMaxLength(100);
+            entity.Property(e => e.Updated_Time).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<outbound_batch>(entity =>
