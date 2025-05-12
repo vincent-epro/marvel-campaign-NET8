@@ -1,8 +1,12 @@
 ﻿using marvel_campaign_NET8.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System.Globalization;
 using System.Reflection;
+using System.Text;
 using System.Text.Json.Nodes;
+using System.Linq.Dynamic.Core;
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -394,6 +398,425 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
+
+        // Update OB CallList
+        [Route("UpdateOBCallList")]
+        [HttpPut]
+        public IActionResult UpdateOBCallList([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    UpdateCRM_OBCallList(data);
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = "record updated" });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private void UpdateCRM_OBCallList(JsonObject data)
+        {
+            int pID = Convert.ToInt32((data["Call_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+
+            var _pro = (from _c in _scrme.ob_results
+                        where _c.Call_Id == pID
+                        select _c).SingleOrDefault<ob_result>();
+
+            // if there is at least 1 
+            if (_pro != null)
+            {
+                Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
+
+                // iterate through the form data and assign the field name and field value to dictionary
+                foreach (var item in data)
+                {
+
+                    string fieldName = item.Key;
+                    var fieldValue = item.Value?.ToString() ?? null;
+
+                    //    var fieldType = item.Value?.GetValueKind(); //old
+
+                    if (fieldName != "Agent_Id" && fieldName != "Token")
+                    {
+                        PropertyInfo? fieldProp = new ob_result().GetType().GetProperty(fieldName);
+                        Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
+                        string ftype = type.Name;
+
+                        if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
+                        {
+                            if (fieldValue != null)
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
+                            }
+                            else
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
+                            }
+                        }
+                        else
+                        {
+                            if (fieldValue != null)
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
+                            }
+                            else
+                            {
+                                fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
+                            }
+                        }
+                    }
+                }
+
+
+                foreach (var fields in fieldsToBeUpdatedDict)
+                {
+                    // find the column name that matches with the field name in dictionary
+                    PropertyInfo? properInfo = _pro.GetType().GetProperty(fields.Key);
+                    properInfo?.SetValue(_pro, fields.Value);
+                }
+
+                _pro.Transaction_Time = DateTime.Now;
+
+                _pro.Updated_By = agentId;
+                _pro.Updated_Time = DateTime.Now;
+                _pro.Attempt = _pro.Attempt + 1;
+
+
+                CopyTo_OBLog(_pro);
+
+
+                _scrme.SaveChanges();
+
+            }
+
+        }
+
+        void CopyTo_OBLog(ob_result _ob_item)
+        {
+            // declare db table items
+            ob_result_log _log_item = new ob_result_log();
+
+            // iterate each column of the _contact_item
+            foreach (PropertyInfo logColumn in _log_item.GetType().GetProperties())
+            {
+                // insert into all fields except LogID
+                if (logColumn.Name != "LogID")
+                {
+                    // get the column name of table
+                    PropertyInfo? _ob_column = _ob_item.GetType().GetProperty(logColumn.Name);
+
+                    // insert each field value into log field
+                    logColumn.SetValue(_log_item, _ob_column.GetValue(_ob_item));
+                }
+
+                // add new log record
+                _scrme.ob_result_logs.Add(_log_item);
+            }
+        }
+
+
+        // Search OB CallList
+        [Route("SearchOBCallList")]
+        [HttpPost]
+        public IActionResult SearchOBCallList([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string batchcode = (data["Batch_Code"] ?? "").ToString();
+                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+                    if (batchcode == string.Empty || campaigncode == string.Empty)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                    }
+                    else
+                    {
+                        return Content(SearchCRM_OBCallList(data).ToString(), "application/json; charset=utf-8", Encoding.UTF8);
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+
+            }
+        }
+
+
+        private JObject SearchCRM_OBCallList(JsonObject data)
+        {
+            // declare a list of json objects containing the each row of data
+            List<JObject> _con_history_list = new List<JObject>();
+
+            // declare a json object to contain all rows of data
+            // JObject allJsonResults = new JObject(); //
+
+            string batchcode = (data["Batch_Code"] ?? "").ToString();
+            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+            int agent_id = Convert.ToInt32((data["To_Check_Id"] ?? "-1").ToString());
+
+            string phone = (data["Phone"] ?? "").ToString();
+            string name = (data["Name"] ?? "").ToString();
+            string gender = (data["Gender"] ?? "").ToString();
+
+            int age_from = Convert.ToInt32((data["Age_From"] ?? "-1").ToString());
+            int age_to = Convert.ToInt32((data["Age_To"] ?? "-1").ToString());
+
+            string call_status = (data["Call_Status"] ?? "").ToString();
+            string callback_time_from = (data["Callback_Time_From"] ?? "").ToString();
+            string callback_time_to = (data["Callback_Time_To"] ?? "").ToString();
+
+            string within_batchperiod = (data["Within_BatchPeriod"] ?? "").ToString();
+
+
+            List<string> conditionList = new List<string>();
+            string whereClause = string.Empty;
+
+            string statement = string.Empty;
+
+            //     statement = " c.Is_Valid == \"Y\""; //
+
+            //     conditionList.Add("(" + statement + ")"); //
+
+            statement = " r.Opt_Out == null || !r.Opt_Out.Equals(\"Y\")";
+
+            conditionList.Add("(" + statement + ")");
+
+            // Only search assigned call list
+            statement = " r.Agent_Id != null ";
+
+            conditionList.Add("(" + statement + ")");
+
+            if (batchcode != string.Empty)
+            {
+                statement = " r.Batch_Code.Equals(\"" + batchcode + "\")";
+                conditionList.Add("(" + statement + ")");
+            }
+
+            if (campaigncode != string.Empty)
+            {
+                statement = " r.Campaign_Code.Equals(\"" + campaigncode + "\")";
+                conditionList.Add("(" + statement + ")");
+            }
+
+
+            if (agent_id != -1)
+            {
+                statement = " r.Agent_Id == " + agent_id;
+
+                conditionList.Add("(" + statement + ")");
+
+            }
+
+            if (phone != string.Empty)
+            {
+                statement = " r.Home_No.Contains(\"" + phone + "\")" + " || "
+                          + " r.Office_No.Contains(\"" + phone + "\")" + " || "
+                          + " r.Mobile_No.Contains(\"" + phone + "\")" + " || "
+                          + " r.Other_Phone_No.Contains(\"" + phone + "\")";
+
+                conditionList.Add("(" + statement + ")");
+            }
+
+            if (name != string.Empty)
+            {
+                statement = " r.First_Name.Contains(\"" + name + "\")" + " || "
+                          + " r.Last_Name.Contains(\"" + name + "\")";
+
+                conditionList.Add("(" + statement + ")");
+            }
+
+            if (gender != string.Empty)
+            {
+                statement = " r.Gender.Equals(\"" + gender + "\")";
+
+                conditionList.Add("(" + statement + ")");
+            }
+
+            if (age_from != -1 && age_to != -1)
+            {
+                DateTime today = DateTime.Today;
+                DateTime min = today.AddYears(-(age_to + 1));
+                DateTime max = today.AddYears(-age_from);
+
+                int min_year = min.Year;
+                int min_month = min.Month;
+                int min_day = min.Day;
+
+                int max_year = max.Year;
+                int max_month = max.Month;
+                int max_day = max.Day;
+
+                statement = " r.DOB != null" + " && "
+                          + " r.DOB > " + "DateTime(" + min_year + "," + min_month + "," + min_day + ",0,0,0)" + " && "
+                          + " r.DOB <= " + "DateTime(" + max_year + "," + max_month + "," + max_day + ",0,0,0)";
+
+                conditionList.Add("(" + statement + ")");
+
+            }
+
+            if (call_status != string.Empty)
+            {
+                if (call_status == "NewLead")
+                    statement = " r.Attempt == 0";
+                else
+                    statement = " r.Call_Status.Equals(\"" + call_status + "\")";
+
+                conditionList.Add("(" + statement + ")");
+            }
+
+
+
+            if (callback_time_from != string.Empty && callback_time_to != string.Empty)
+            {
+                double s_min = TimeSpan.ParseExact(callback_time_from, @"hh\:mm", CultureInfo.InvariantCulture).TotalMinutes;
+                double e_min = TimeSpan.ParseExact(callback_time_to, @"hh\:mm", CultureInfo.InvariantCulture).TotalMinutes;
+
+                statement = "r.Callback_Time.HasValue "
+                          + " && ((r.Callback_Time.Value.Hour * 60) + r.Callback_Time.Value.Minute) >= " + s_min
+                          + " && ((r.Callback_Time.Value.Hour * 60) + r.Callback_Time.Value.Minute) <= " + e_min;
+
+
+                conditionList.Add("(" + statement + ")");
+
+            }
+
+
+            if (within_batchperiod == "Y")
+            {
+                statement = " b.Batch_Start_Date != null && b.Batch_End_Date != null "
+                            + " && DateTime.Now >= b.Batch_Start_Date "
+                            + " && DateTime.Now.Date <= b.Batch_End_Date";
+
+                conditionList.Add("(" + statement + ")");
+            }
+
+
+            whereClause = string.Join(" AND ", conditionList.ToArray());
+
+
+            var _return_customer = (from r in _scrme.ob_results
+                                    join b in _scrme.ob_batches on new { r.Campaign_Code, r.Batch_Code } equals new { b.Campaign_Code, b.Batch_Code }
+                                    select new { r, b }
+                   ).Where(whereClause);
+
+
+            int draw = Convert.ToInt32((data["draw"] ?? "-1").ToString());
+
+            var start = (data["start"] ?? "").ToString();
+            var length = (data["length"] ?? "").ToString();
+
+
+            int col_index = data["order"]?[0]?["column"]?.GetValue<int>() ?? -1;
+
+            string sortColumn = data["columns"]?[col_index]?["data"]?.GetValue<string>() ?? string.Empty;
+
+            var sortColumnDir = data["order"]?[0]?["dir"]?.GetValue<string>() ?? "asc";
+
+            int pageSize = length != null ? Convert.ToInt32(length) : 0;
+            int skip = start != null ? Convert.ToInt32(start) : 0;
+            int recordsTotal = 0;
+
+
+            //Sorting    
+            if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
+            {
+                string final_ordering;
+
+                bool isDesc;
+
+                if (sortColumnDir == "desc")
+                    isDesc = true;
+                else
+                    isDesc = false;
+
+                string sortColumn_list;
+
+                sortColumn_list = "r.";
+
+
+                final_ordering = sortColumn_list + sortColumn + (isDesc ? " descending" : "");
+
+
+                // Sorting 2nd
+                if (data["order"]?.AsArray()?.Count > 1)
+                {
+                    int col_index2 = data["order"]?[1]?["column"]?.GetValue<int>() ?? -1;
+                    string sortColumn2 = data["columns"]?[col_index2]?["data"]?.GetValue<string>() ?? string.Empty;
+                    string sortColumnDir2 = data["order"]?[1]?["dir"]?.GetValue<string>() ?? "asc";
+
+                    string sortColumn_list2 = "r.";
+
+                    final_ordering += $", {sortColumn_list2}{sortColumn2} {(sortColumnDir2 == "desc" ? "descending" : "")}";
+                }
+
+                _return_customer = _return_customer.OrderBy(final_ordering);
+            }
+
+
+            //total number of rows count     
+            recordsTotal = _return_customer.Count();
+            //Paging     
+            var data2 = _return_customer.Skip(skip).Take(pageSize).ToList();
+
+
+            // assign results' row values to the jsonResultList JSON object
+            foreach (var _result_item in data2)
+            {
+                // declare a temp json object to store each _result_item
+                JObject tempJson = new JObject();
+
+                //  tempJson.RemoveAll(); // clear the temp object
+
+
+                foreach (PropertyInfo property in _result_item.r.GetType().GetProperties())
+                {
+                    // add only the following column names and values to temp
+
+                    tempJson.Add(new JProperty(property.Name, property.GetValue(_result_item.r)));
+
+                }
+                _con_history_list.Add(tempJson); // add the temp result to the list
+            }
+
+            // set up _all_results json data
+            JObject allJsonResults = new JObject()
+            {
+                new JProperty("result", "success"),
+                new JProperty("draw", draw),
+                new JProperty("recordsFiltered", recordsTotal),
+                new JProperty("recordsTotal", recordsTotal),
+                new JProperty("details", _con_history_list)
+            };
+
+            // return all results in json format
+            return allJsonResults;
+
+        }
 
 
 
