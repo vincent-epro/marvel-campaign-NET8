@@ -819,6 +819,124 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Get OB Batch Lead Count
+        [Route("GetOBBatchLeadCount")]
+        [HttpPost]
+        public IActionResult GetOBBatchLeadCount([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string batchcode = (data["Batch_Code"] ?? "").ToString();
+                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+
+                    if (batchcode == string.Empty || campaigncode == string.Empty || assign_from == -1)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                    }
+                    else
+                    {
+                        int leadcount = GetCRM_OBBatchLead(data).Count();
+
+                        return Ok(new
+                        {
+                            result = AppOutp.OutputResult_SUCC,
+                            details = new
+                            {
+                                LeadCount = leadcount
+                            }
+                        });
+
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+
+            }
+        }
+
+        private IQueryable<ob_result> GetCRM_OBBatchLead([FromBody] dynamic data)
+        {
+            string batchcode = (data["Batch_Code"] ?? "").ToString();
+            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+            int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+
+            string call_status = (data["Call_Status"] ?? "").ToString();
+            string call_reason = (data["Call_Reason"] ?? "").ToString();
+
+            string gender = (data["Gender"] ?? "").ToString();
+
+            int age_from = Convert.ToInt32((data["Age_From"] ?? "-1").ToString());
+            int age_to = Convert.ToInt32((data["Age_To"] ?? "-1").ToString());
+
+
+            IQueryable<ob_result> _pro = from _r in _scrme.ob_results
+                                         where _r.Batch_Code == batchcode && _r.Campaign_Code == campaigncode &&
+                                              (_r.Opt_Out == null || !_r.Opt_Out.Equals("Y"))
+                                         select _r;
+
+            if (assign_from == 0)
+            {
+                _pro = _pro.Where(_c => _c.Attempt == 0 && _c.Agent_Id == null);
+
+            }
+            else if (assign_from == -999)
+            {
+                if (call_status == "NewLead")
+                {
+                    _pro = _pro.Where(_c => _c.Attempt == 0 && _c.Agent_Id != null);
+                }
+                else
+                {
+                    _pro = _pro.Where(_c => _c.Call_Status == call_status && _c.Call_Reason == call_reason && _c.Agent_Id != null);
+                }
+            }
+            else
+            {
+                if (call_status == "NewLead")
+                {
+                    _pro = _pro.Where(_c => _c.Attempt == 0 && _c.Agent_Id == assign_from);
+                }
+                else
+                {
+                    _pro = _pro.Where(_c => _c.Call_Status == call_status && _c.Call_Reason == call_reason && _c.Agent_Id == assign_from);
+                }
+            }
+
+            if (gender != "")
+            {
+                _pro = _pro.Where(_c => _c.Gender == gender);
+            }
+
+            if (age_from != -1 && age_to != -1)
+            {
+                DateTime today = DateTime.Today;
+                DateTime min = today.AddYears(-(age_to + 1));
+                DateTime max = today.AddYears(-age_from);
+
+                _pro = _pro.Where(_c => _c.DOB != null && _c.DOB > min && _c.DOB <= max);
+            }
+
+
+            return _pro;
+        }
+
+
+
 
 
 
