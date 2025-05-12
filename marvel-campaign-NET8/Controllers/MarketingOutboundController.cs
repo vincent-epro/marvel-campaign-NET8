@@ -183,11 +183,11 @@ namespace marvel_campaign_NET8.Controllers
             string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
 
             try
-            {
-                int leadcount = GetCRM_BatchLead(data).Count();
-
+            {                
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
+                    int leadcount = GetCRM_BatchLead(data).Count();
+
                     return Ok(new
                     {
                         result = AppOutp.OutputResult_SUCC,
