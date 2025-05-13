@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Linq.Dynamic.Core;
+using Z.EntityFramework.Plus;
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -935,6 +936,112 @@ namespace marvel_campaign_NET8.Controllers
             return _pro;
         }
 
+
+        // Assign OB Batch Lead
+        [Route("AssignOBBatchLead")]
+        [HttpPost]
+        public IActionResult AssignOBBatchLead([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string batchcode = (data["Batch_Code"] ?? "").ToString();
+                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+
+                    if (batchcode == string.Empty || campaigncode == string.Empty || assign_from == -1)
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                    }
+                    else
+                    {
+                        int upd_result = AssignCRM_OBBatchLead(data);
+
+                        if (upd_result == -1)
+                        {
+                            return Ok(new { result = AppOutp.OutputResult_FAIL, details = "No lead / Not enough lead to assign" });
+                        }
+                        else
+                        {
+                            return Ok(new { result = AppOutp.OutputResult_SUCC, details = "Assignment done" });
+                        }
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+
+            }
+        }
+
+        private int AssignCRM_OBBatchLead(JsonObject data)
+        {
+            IQueryable<ob_result> _return_lead = GetCRM_OBBatchLead(data);
+
+            int tot_count = _return_lead.Count();
+
+            int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+
+            int assign_total;
+
+            if (assign_from == -999)
+            {
+                assign_total = tot_count;
+            }
+            else
+            {
+                assign_total = Convert.ToInt32((data["Assign_Total"] ?? "-1").ToString());
+            }
+
+            if (tot_count > 0 && assign_total > 0 && tot_count >= assign_total)
+            {
+                int assign_to = Convert.ToInt32((data["Assign_To"] ?? "-1").ToString());
+
+                if (assign_to == 0)
+                {
+                    _return_lead.OrderBy(x => Guid.NewGuid()).Take(assign_total)
+                        .Update(x => new ob_result { Agent_Id = null });
+                }
+                else
+                {
+                    _return_lead.OrderBy(x => Guid.NewGuid()).Take(assign_total)
+                        .Update(x => new ob_result { Agent_Id = assign_to });
+                }
+
+                // ------------------------------------------------------------------
+                ob_assignment_history _new_cp_item = new ob_assignment_history();
+
+                _new_cp_item.Assignment_Details = Convert.ToString(data);
+
+                _new_cp_item.Created_By = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+                _new_cp_item.Created_Time = DateTime.Now;
+
+
+                _scrme.ob_assignment_histories.Add(_new_cp_item);
+
+                _scrme.SaveChanges();
+                // ------------------------------------------------------------------
+
+
+                return 1;
+            }
+            else
+            {
+                return -1;
+            }
+
+        }
 
 
 
