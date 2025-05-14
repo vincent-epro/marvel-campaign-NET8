@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Linq.Dynamic.Core;
 using Z.EntityFramework.Plus;
+using System.Data;
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -1044,6 +1045,47 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Get OB Campaign Header
+        [Route("GetOBCampaignHeader")]
+        [HttpPost]
+        public IActionResult GetOBCampaignHeader([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+                    List<ob_header_mapping> _list_form = GetCRM_OBCampaignHeader(campaigncode);
+
+                    // return successful get and display the list of data
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = _list_form });
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private List<ob_header_mapping> GetCRM_OBCampaignHeader(string campaigncode)
+        {
+            // obtain data
+            var _frms = (from _f in _scrme.ob_header_mappings
+                         where _f.Campaign_Code == campaigncode
+                         select _f);
+
+            return _frms.ToList();
+
+        }
 
 
 
