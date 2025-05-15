@@ -75,31 +75,33 @@ namespace marvel_campaign_NET8.Controllers
                     // string mediaLink = ".\\fb_media\\" + fileName; //
 
 
-                    string strconn = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" +
-                       filePath + "';Extended Properties='Excel 12.0 Xml;HDR=YES;';";
+                    var builder = new OleDbConnectionStringBuilder
+                    {
+                        Provider = "Microsoft.ACE.OLEDB.12.0",
+                        DataSource = filePath
+                    };
 
-                    OleDbConnection objConn = null;
-                    DataTable dataTable = null;
+                    builder["Extended Properties"] = "Excel 12.0 Xml;HDR=YES;";
+
+                    string strconn = builder.ConnectionString;
+
                     List<string> File_SheetName = new List<string>();
 
-                    // Create and Open OleDbConnection
-                    objConn = new OleDbConnection(strconn);
-                    objConn.Open();
-
-                    // Get the data table
-                    dataTable =
-                    objConn.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null);
-
-
-                    foreach (DataRow row in dataTable.Rows)
+                    using (OleDbConnection objConn = new OleDbConnection(strconn))
                     {
-                        // Write the sheet name to the screen
+                        objConn.Open();
+                        DataTable dataTable = objConn.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null);
 
-                        File_SheetName.Add(row["TABLE_NAME"].ToString());
+                       File_SheetName = new List<string>();
 
+                        foreach (DataRow row in dataTable.Rows)
+                        {
+                            File_SheetName.Add(row["TABLE_NAME"].ToString());
+                        }
+
+                        objConn.Close();
                     }
 
-                    objConn.Close();
 
 
                     return Ok(new
