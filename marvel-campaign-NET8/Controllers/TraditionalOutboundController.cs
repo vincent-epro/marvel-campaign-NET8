@@ -1088,6 +1088,154 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Add OB Campaign
+        [Route("AddOBCampaign")]
+        [HttpPost]
+        public IActionResult AddOBCampaign([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    int campaignId = AddCRM_OBCampaign(data);
+
+                    if (campaignId != -1)
+                    {
+                        return Ok(new
+                        {
+                            result = AppOutp.OutputResult_SUCC,
+                            details = new
+                            {
+                                Campaign_Id = campaignId
+                            }
+                        });
+                    }
+                    else
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Campaign Code already exists" });
+                    }
+
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private int AddCRM_OBCampaign(JsonObject data)
+        {
+            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+            var _cp = (from _c in _scrme.ob_campaigns
+                       where _c.Campaign_Status == "Active" && _c.Campaign_Code == campaigncode
+                       select _c);
+
+            // exists
+            if (_cp.Count() > 0)
+            {
+                return -1;
+            }
+            else
+            {
+                int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+                int formId = Convert.ToInt32((data["Form_Id"] ?? "-1").ToString());
+
+                ob_campaign _new_cp_item = new ob_campaign();
+
+                _new_cp_item.Campaign_Code = campaigncode;
+                _new_cp_item.Form_Id = formId;
+                _new_cp_item.Form_Name = (data["Form_Name"] ?? "").ToString();
+                _new_cp_item.Campaign_Description = (data["Campaign_Description"] ?? "").ToString();
+                _new_cp_item.Campaign_Status = "Active";
+                _new_cp_item.Created_By = agentId;
+                _new_cp_item.Created_Time = DateTime.Now;
+                _new_cp_item.Updated_By = agentId;
+                _new_cp_item.Updated_Time = DateTime.Now;
+
+                _scrme.ob_campaigns.Add(_new_cp_item);
+
+                _scrme.SaveChanges();
+
+                return _new_cp_item.Campaign_Id;
+            }
+
+        }
+
+
+        // Update OB Campaign
+        [Route("UpdateOBCampaign")]
+        [HttpPut]
+        public IActionResult UpdateOBCampaign([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    UpdateCRM_OBCampaign(data);
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = "record updated" });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private void UpdateCRM_OBCampaign(JsonObject data)
+        {
+            int cID = Convert.ToInt32((data["Campaign_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            string s_action = (data["S_Action"] ?? "").ToString();
+
+            var _cs = (from _c in _scrme.ob_campaigns
+                       where _c.Campaign_Id == cID
+                       select _c).SingleOrDefault<ob_campaign>();
+
+            // exists in table
+            if (_cs != null)
+            {
+                if (s_action == "Amend")
+                {
+                    _cs.Campaign_Code = (data["Campaign_Code"] ?? "").ToString();
+                    _cs.Form_Id = Convert.ToInt32((data["Form_Id"] ?? "-1").ToString());
+                    _cs.Form_Name = (data["Form_Name"] ?? "").ToString();
+                    _cs.Campaign_Description = (data["Campaign_Description"] ?? "").ToString();
+
+                    _cs.Updated_By = agentId;
+                    _cs.Updated_Time = DateTime.Now;
+
+                    _scrme.SaveChanges();
+                }
+                else if (s_action == "Delete")
+                {
+                    _cs.Campaign_Status = "InActive";
+
+                    _cs.Updated_By = agentId;
+                    _cs.Updated_Time = DateTime.Now;
+
+                    _scrme.SaveChanges();
+                }
+            }
+
+        }
+
+
+
 
 
     }
