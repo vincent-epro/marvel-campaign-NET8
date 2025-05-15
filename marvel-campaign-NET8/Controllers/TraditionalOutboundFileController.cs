@@ -74,6 +74,11 @@ namespace marvel_campaign_NET8.Controllers
 
                     // string mediaLink = ".\\fb_media\\" + fileName; //
 
+                    if (!Path.IsPathFullyQualified(filePath) || !System.IO.File.Exists(filePath))
+                    {
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid file path provided." });
+                     //   throw new ArgumentException("Invalid file path provided."); //
+                    }
 
                     var builder = new OleDbConnectionStringBuilder
                     {
