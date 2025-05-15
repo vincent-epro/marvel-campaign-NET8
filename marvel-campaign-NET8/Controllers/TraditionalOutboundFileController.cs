@@ -38,7 +38,21 @@ namespace marvel_campaign_NET8.Controllers
                 {
                     return Ok(new { result = AppOutp.OutputResult_FAIL, details = "No file was uploaded." });
                 }
+
+               // var file = Request.Form.Files[0];
+
+                var allowedExtensions = new List<string> { ".xlsx", ".xls" };
+                var allowedMimeTypes = new List<string> { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel" };
+
                 var file = Request.Form.Files[0];
+                var fileExtension = Path.GetExtension(file.FileName).ToLower();
+                var mimeType = file.ContentType;
+
+                if (!allowedExtensions.Contains(fileExtension) || !allowedMimeTypes.Contains(mimeType))
+                {
+                    return BadRequest(new { result = AppOutp.OutputResult_FAIL, details = "Invalid file type." });
+                }
+
 
                 foreach (var key in Request.Form.Keys)
                 {
