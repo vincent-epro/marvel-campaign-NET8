@@ -1234,6 +1234,76 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
+        // Add OB Campaign Header
+        [Route("AddOBCampaignHeader")]
+        [HttpPost]
+        public IActionResult AddOBCampaignHeader([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    AddCRM_OBCampaignHeader(data);
+                    return Ok(new { result = AppOutp.OutputResult_SUCC, details = "Header Added" });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private void AddCRM_OBCampaignHeader(JsonObject data)
+        {
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int campaignId = Convert.ToInt32((data["Campaign_Id"] ?? "-1").ToString());
+            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+            var _ch = (from _c in _scrme.ob_header_mappings
+                       where _c.Campaign_Code == campaigncode
+                       select _c);
+
+            // exists
+            if (_ch.Count() > 0)
+            {
+                _scrme.ob_header_mappings.RemoveRange(_ch);
+            }
+
+            var hcArray = data["HeaderColumnArr"] as JsonArray;
+
+            foreach (JsonObject jsonObj in hcArray.OfType<JsonObject>())
+            {
+                var _new_h_item = new ob_header_mapping
+                {
+                    Campaign_Id = campaignId,
+                    Campaign_Code = campaigncode,
+                    Excel_Field_Order = jsonObj["Excel_Field_Order"]?.GetValue<int>() ?? -1,
+                    Excel_Field_Name = jsonObj["Excel_Field_Name"]?.GetValue<string>() ?? "",
+                    DB_Field_Name = jsonObj["DB_Field_Name"]?.GetValue<string>() ?? "",
+                    Check_Type = jsonObj["Check_Type"]?.GetValue<string>() ?? "",
+                    Created_By = agentId,
+                    Created_Time = DateTime.Now
+                };
+
+                _scrme.ob_header_mappings.Add(_new_h_item);
+            }
+
+            _scrme.SaveChanges();
+
+            string filePath = (data["File_Path"] ?? "").ToString();
+            if (filePath != "")
+            {
+                System.IO.File.Delete(filePath);
+            }
+
+        }
 
 
 
