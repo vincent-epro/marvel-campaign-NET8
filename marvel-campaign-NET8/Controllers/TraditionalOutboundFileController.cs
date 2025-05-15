@@ -74,19 +74,11 @@ namespace marvel_campaign_NET8.Controllers
 
                     // string mediaLink = ".\\fb_media\\" + fileName; //
 
-                    if (!System.IO.File.Exists(filePath))
-                    {
-                        return BadRequest(new { result = AppOutp.OutputResult_FAIL, details = "Invalid file path." });
-                    }
-
-                    // Sanitize filePath before passing it to the connection string builder
-                    string safeFilePath = filePath.Replace(";", "").Replace("--", "").Replace("'", "");
-
 
                     var builder = new OleDbConnectionStringBuilder
                     {
                         Provider = "Microsoft.ACE.OLEDB.12.0",
-                        DataSource = safeFilePath
+                        DataSource = filePath
                     };
 
                     builder["Extended Properties"] = "Excel 12.0 Xml;HDR=YES;";
@@ -109,6 +101,7 @@ namespace marvel_campaign_NET8.Controllers
 
                         objConn.Close();
                     }
+
 
                     return Ok(new
                     {
