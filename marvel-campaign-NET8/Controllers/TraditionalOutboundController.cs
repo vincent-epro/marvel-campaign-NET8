@@ -9,6 +9,10 @@ using System.Text.Json.Nodes;
 using System.Linq.Dynamic.Core;
 using Z.EntityFramework.Plus;
 using System.Data;
+using Microsoft.Data.SqlClient;
+using System.Data.OleDb;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore;
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -1304,6 +1308,166 @@ namespace marvel_campaign_NET8.Controllers
             }
 
         }
+
+
+        // Check OB Excel
+        [Route("CheckOBExcel")]
+        [HttpPost]
+        public async Task<IActionResult> CheckOBExcel([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string upload_status = await CheckCRM_upload_file(data);
+
+                    return Ok(new
+                    {
+                        result = AppOutp.OutputResult_SUCC,
+                        details = new
+                        {
+                            upload_status
+                        }
+                    });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+
+        private async Task<string> CheckCRM_upload_file(JsonObject data)
+        {
+            string filePath = (data["File_Path"] ?? "").ToString();
+            string worksheet = (data["WorkSheet"] ?? "").ToString();
+            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+
+            var _frms = (from _f in _scrme.ob_header_mappings
+                         where _f.Campaign_Code == campaigncode
+                         select _f);
+
+            int count_header = await _frms.CountAsync();
+
+            string strConn = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={filePath};Extended Properties='Excel 12.0 Xml;HDR=YES;IMEX=1;'";
+            string query = $"SELECT * FROM [{worksheet}]";
+
+            DataTable dtExcelData = new DataTable();
+
+            using var conn = new OleDbConnection(strConn);
+            using var oda = new OleDbDataAdapter(query, conn);
+
+            await conn.OpenAsync();
+            oda.Fill(dtExcelData);
+
+            var fileColumnNames = dtExcelData.Columns
+                .Cast<DataColumn>()
+                .Where(col => !string.IsNullOrEmpty(col.ColumnName))
+                .Select(col => col.ColumnName)
+                .ToList();
+
+            //       int count_fileheader = File_ColumnName.Count; //
+
+            int count_fileheader = fileColumnNames.Count;
+
+            if (count_fileheader != count_header)
+            {
+                return "Number of columns in Excel does not match with campaign setting.";
+            }
+            else
+            {
+
+                dtExcelData.Columns.Add("Campaign_Code", typeof(string));
+
+                int no_of_uploadedrows = dtExcelData.Rows.Count;
+
+                for (int i = 0; i < no_of_uploadedrows; i++)
+                {
+                    dtExcelData.Rows[i]["Campaign_Code"] = campaigncode;
+                }
+
+
+                var sql_del = $"delete from ob_temp_upload where Campaign_Code = @CampaignCode ";
+                var del_record = await _scrme.Database.ExecuteSqlRawAsync(sql_del, new SqlParameter("@CampaignCode", campaigncode));
+
+
+                var mappings = await _scrme.ob_header_mappings
+                    .Where(m => m.Campaign_Code == campaigncode)
+                    .Select(m => new { m.Excel_Field_Name, m.DB_Field_Name, m.Check_Type })
+                    .ToListAsync();
+
+                var dateFields = mappings
+                    .Where(m => m.Check_Type == "Date")
+                    .Select(m => m.DB_Field_Name)
+                    .ToHashSet();
+
+                // Start a transaction
+                using var transaction = await _scrme.Database.BeginTransactionAsync();
+                var connection = _scrme.Database.GetDbConnection() as SqlConnection
+                    ?? throw new InvalidOperationException("The database connection is not a SqlConnection.");
+
+
+                // Perform SqlBulkCopy
+                using (var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, transaction.GetDbTransaction() as SqlTransaction))
+                {
+                    bulkCopy.DestinationTableName = "ob_temp_upload";
+                    foreach (var mapping in mappings)
+                    {
+                        bulkCopy.ColumnMappings.Add(mapping.Excel_Field_Name, mapping.DB_Field_Name);
+                    }
+                    bulkCopy.ColumnMappings.Add("Campaign_Code", "Campaign_Code");
+                    await bulkCopy.WriteToServerAsync(dtExcelData);
+                }
+                
+
+                // Validate date fields
+                var invalidDateFields = new HashSet<string>();
+                foreach (var dateFieldOne in dateFields)
+                {
+                    var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND {dateFieldOne} IS NOT NULL AND ISDATE({dateFieldOne}) = 0";
+
+                    // Create a command using the DbContext's connection
+                    using var command = _scrme.Database.GetDbConnection().CreateCommand();
+                    command.CommandText = sql; // Set the SQL query
+                    command.Transaction = transaction.GetDbTransaction(); // Associate with the transaction
+                    command.Parameters.Add(new SqlParameter("@CampaignCode", campaigncode)); // Add parameter
+
+                    // Execute the query and get the scalar result
+                    var invalidDateCount = await command.ExecuteScalarAsync();
+
+                    int inv = Convert.ToInt32(invalidDateCount);
+
+                    if (inv > 0)
+                    {
+                        invalidDateFields.Add(dateFieldOne);
+                    }
+                }
+
+                if (!invalidDateFields.Any())
+                {
+                    await transaction.CommitAsync();
+                    return "Checked OK. Total No. of records: " + no_of_uploadedrows;
+                }
+                else
+                {
+                    await transaction.RollbackAsync();
+                    var err_msg = string.Join(", ", invalidDateFields);
+                    return "Date type problem for Column(s): " + err_msg;
+                }
+
+
+            }
+        }
+
+
 
 
 
