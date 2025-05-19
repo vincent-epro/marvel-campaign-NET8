@@ -13,6 +13,7 @@ using Microsoft.Data.SqlClient;
 using System.Data.OleDb;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -1429,6 +1430,11 @@ namespace marvel_campaign_NET8.Controllers
                 var invalidDateFields = new HashSet<string>();
                 foreach (var dateFieldOne in dateFields)
                 {
+                    if (!Regex.IsMatch(dateFieldOne, @"^[a-zA-Z0-9_]+$"))
+                    {
+                        throw new InvalidOperationException("Invalid date fields found: " + dateFieldOne);
+                    }
+
                     var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND {dateFieldOne} IS NOT NULL AND ISDATE({dateFieldOne}) = 0";
 
                     // Create a command using the DbContext's connection
