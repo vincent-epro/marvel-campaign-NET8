@@ -1465,6 +1465,90 @@ namespace marvel_campaign_NET8.Controllers
         }
 
 
+        // Confirm Upload OB Excel
+        [Route("ConfirmUploadOBExcel")]
+        [HttpPost]
+        public async Task<IActionResult> ConfirmUploadOBExcel([FromBody] JsonObject data)
+        {
+            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
+            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
+
+            try
+            {
+                if (ValidateClass.Authenticated(token, tk_agentId))
+                {
+                    string upload_status = await ConfirmCRM_upload_file(data);
+
+                    return Ok(new
+                    {
+                        result = AppOutp.OutputResult_SUCC,
+                        details = new
+                        {
+                            upload_status
+                        }
+                    });
+                }
+                else
+                {
+                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
+                }
+            }
+            catch (Exception err)
+            {
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
+            }
+        }
+
+        private async Task<string> ConfirmCRM_upload_file(JsonObject data)
+        {
+            string batchcode = (data["Batch_Code"] ?? "").ToString();
+            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+            string b_start = (data["Batch_Start_Date"] ?? "").ToString();
+            string b_end = (data["Batch_End_Date"] ?? "").ToString();
+            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+
+            var _b = (from _c in _scrme.ob_batches
+                      where _c.Batch_Status == "Active" && _c.Campaign_Code == campaigncode && _c.Batch_Code == batchcode
+                      select _c);
+
+            // exists
+            if (await _b.CountAsync() > 0)
+            {
+                return "Batch Code of this campaign already exists. Please assign a new Batch Code.";
+            }
+            else
+            {
+                using var transaction = await _scrme.Database.BeginTransactionAsync();
+                var connection = _scrme.Database.GetDbConnection() as SqlConnection
+                    ?? throw new InvalidOperationException("The database connection is not a SqlConnection.");
+
+                var sql = "uploadOB_CallList"; // Name of the stored procedure
+                using var command = _scrme.Database.GetDbConnection().CreateCommand();
+                command.CommandText = sql;
+                command.CommandType = CommandType.StoredProcedure; // Set to StoredProcedure
+                command.Transaction = transaction.GetDbTransaction(); // Associate with the transaction
+                command.Parameters.Add(new SqlParameter("@Campaign_Code", campaigncode));
+                command.Parameters.Add(new SqlParameter("@Batch_Code", batchcode));
+                command.Parameters.Add(new SqlParameter("@Batch_Start", b_start));
+                command.Parameters.Add(new SqlParameter("@Batch_End", b_end));
+                command.Parameters.Add(new SqlParameter("@Agent_Id", agentId));
+
+                var ret_status = await command.ExecuteScalarAsync();
+                await transaction.CommitAsync();
+
+                string filePath = (data["File_Path"] ?? "").ToString();
+
+                if (filePath != "")
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                return ret_status?.ToString() ?? "";
+
+            }
+
+        }
+
 
 
 
