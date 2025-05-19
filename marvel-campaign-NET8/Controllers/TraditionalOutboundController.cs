@@ -1430,12 +1430,8 @@ namespace marvel_campaign_NET8.Controllers
                 var invalidDateFields = new HashSet<string>();
                 foreach (var dateFieldOne in dateFields)
                 {
-                    if (!Regex.IsMatch(dateFieldOne, @"^[a-zA-Z0-9_]+$"))
-                    {
-                        throw new InvalidOperationException("Invalid date fields found: " + dateFieldOne);
-                    }
-
-                    var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND {dateFieldOne} IS NOT NULL AND ISDATE({dateFieldOne}) = 0";
+                    var escapedField = $"[{dateFieldOne.Replace("]", "]]")}]";
+                    var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND {escapedField} IS NOT NULL AND ISDATE({escapedField}) = 0";
 
                     // Create a command using the DbContext's connection
                     using var command = _scrme.Database.GetDbConnection().CreateCommand();
