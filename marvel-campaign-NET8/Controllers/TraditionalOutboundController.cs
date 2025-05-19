@@ -1519,8 +1519,6 @@ namespace marvel_campaign_NET8.Controllers
             else
             {
                 using var transaction = await _scrme.Database.BeginTransactionAsync();
-                var connection = _scrme.Database.GetDbConnection() as SqlConnection
-                    ?? throw new InvalidOperationException("The database connection is not a SqlConnection.");
 
                 var sql = "uploadOB_CallList"; // Name of the stored procedure
                 using var command = _scrme.Database.GetDbConnection().CreateCommand();
