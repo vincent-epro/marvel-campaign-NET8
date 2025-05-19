@@ -1374,8 +1374,6 @@ namespace marvel_campaign_NET8.Controllers
                 .Select(col => col.ColumnName)
                 .ToList();
 
-            //       int count_fileheader = File_ColumnName.Count; //
-
             int count_fileheader = fileColumnNames.Count;
 
             if (count_fileheader != count_header)
@@ -1384,7 +1382,6 @@ namespace marvel_campaign_NET8.Controllers
             }
             else
             {
-
                 dtExcelData.Columns.Add("Campaign_Code", typeof(string));
 
                 int no_of_uploadedrows = dtExcelData.Rows.Count;
@@ -1396,7 +1393,7 @@ namespace marvel_campaign_NET8.Controllers
 
 
                 var sql_del = $"delete from ob_temp_upload where Campaign_Code = @CampaignCode ";
-                var del_record = await _scrme.Database.ExecuteSqlRawAsync(sql_del, new SqlParameter("@CampaignCode", campaigncode));
+                await _scrme.Database.ExecuteSqlRawAsync(sql_del, new SqlParameter("@CampaignCode", campaigncode));
 
 
                 var mappings = await _scrme.ob_header_mappings
