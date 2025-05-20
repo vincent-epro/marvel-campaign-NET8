@@ -1424,14 +1424,38 @@ namespace marvel_campaign_NET8.Controllers
                     bulkCopy.ColumnMappings.Add("Campaign_Code", "Campaign_Code");
                     await bulkCopy.WriteToServerAsync(dtExcelData);
                 }
-                
+
+
+                var safeDateFields = new HashSet<string>();
+
+                if (dateFields.Any())
+                {
+                    // Retrieve valid column names for ob_temp_upload from the database
+                    var columnQuery = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ob_temp_upload'";
+                    var allowedColumns = new HashSet<string>();
+
+                    using (var command = _scrme.Database.GetDbConnection().CreateCommand())
+                    {
+                        command.CommandText = columnQuery;
+                        command.Transaction = transaction.GetDbTransaction(); // Associate with the transaction
+
+                        using var reader = await command.ExecuteReaderAsync();
+                        while (await reader.ReadAsync())
+                        {
+                            allowedColumns.Add(reader.GetString(0));
+                        }
+                    }
+
+                    // Filter dateFields to only include valid column names
+                    safeDateFields = dateFields.Intersect(allowedColumns, StringComparer.OrdinalIgnoreCase).ToHashSet();
+                }
+
 
                 // Validate date fields
                 var invalidDateFields = new HashSet<string>();
-                foreach (var dateFieldOne in dateFields)
+                foreach (var dateFieldOne in safeDateFields)
                 {
-                    var escapedField = $"[{dateFieldOne.Replace("]", "]]")}]";
-                    var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND {escapedField} IS NOT NULL AND ISDATE({escapedField}) = 0";
+                    var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND {dateFieldOne} IS NOT NULL AND ISDATE({dateFieldOne}) = 0";
 
                     // Create a command using the DbContext's connection
                     using var command = _scrme.Database.GetDbConnection().CreateCommand();
