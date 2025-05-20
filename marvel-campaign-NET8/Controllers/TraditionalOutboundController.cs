@@ -1426,36 +1426,22 @@ namespace marvel_campaign_NET8.Controllers
                 }
 
 
-                var safeDateFields = new HashSet<string>();
-
-                if (dateFields.Any())
-                {
-                    // Retrieve valid column names for ob_temp_upload from the database
-                    var columnQuery = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ob_temp_upload'";
-                    var allowedColumns = new HashSet<string>();
-
-                    using (var command = _scrme.Database.GetDbConnection().CreateCommand())
-                    {
-                        command.CommandText = columnQuery;
-                        command.Transaction = transaction.GetDbTransaction(); // Associate with the transaction
-
-                        using var reader = await command.ExecuteReaderAsync();
-                        while (await reader.ReadAsync())
-                        {
-                            allowedColumns.Add(reader.GetString(0));
-                        }
-                    }
-
-                    // Filter dateFields to only include valid column names
-                    safeDateFields = dateFields.Intersect(allowedColumns, StringComparer.OrdinalIgnoreCase).ToHashSet();
-                }
-
+                // Define a whitelist of allowed column names (optional, but recommended for extra security)
+                var validColumnNames = mappings.Select(m => m.DB_Field_Name).ToHashSet();
 
                 // Validate date fields
                 var invalidDateFields = new HashSet<string>();
-                foreach (var dateFieldOne in safeDateFields)
+                foreach (var dateFieldOne in dateFields)
                 {
-                    var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND {dateFieldOne} IS NOT NULL AND ISDATE({dateFieldOne}) = 0";
+
+                    // Validate that dateFieldOne is a valid column name
+                    if (!validColumnNames.Contains(dateFieldOne))
+                    {
+                        invalidDateFields.Add(dateFieldOne); // Mark as invalid if not in whitelist
+                        continue;
+                    }
+
+                    var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND [{dateFieldOne}] IS NOT NULL AND ISDATE([{dateFieldOne}]) = 0";
 
                     // Create a command using the DbContext's connection
                     using var command = _scrme.Database.GetDbConnection().CreateCommand();
