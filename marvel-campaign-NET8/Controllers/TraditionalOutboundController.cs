@@ -1466,7 +1466,7 @@ namespace marvel_campaign_NET8.Controllers
         }
 
         // Validate both date and datetime formats
-        private bool IsValidDateTimeFormat(string dateValue)
+        private static bool IsValidDateTimeFormat(string dateValue)
         {
             if (string.IsNullOrWhiteSpace(dateValue))
                 return true; // Treat empty or whitespace as valid since nulls are allowed
