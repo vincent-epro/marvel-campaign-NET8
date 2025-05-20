@@ -1426,37 +1426,26 @@ namespace marvel_campaign_NET8.Controllers
                 }
 
 
-                // Define a whitelist of allowed column names (optional, but recommended for extra security)
-                var validColumnNames = mappings.Select(m => m.DB_Field_Name).ToHashSet();
-
-                // Validate date fields
                 var invalidDateFields = new HashSet<string>();
                 foreach (var dateFieldOne in dateFields)
                 {
+                    var entries = await _scrme.ob_temp_uploads
+                        .Where(x => x.Campaign_Code == campaigncode && EF.Property<string>(x, dateFieldOne) != null)
+                        .Select(x => EF.Property<string>(x, dateFieldOne))
+                        .ToListAsync();
 
-                    // Validate that dateFieldOne is a valid column name
-                    if (!validColumnNames.Contains(dateFieldOne))
+                    foreach (var dateValue in entries)
                     {
-                        invalidDateFields.Add(dateFieldOne); // Mark as invalid if not in whitelist
-                        continue;
-                    }
-
-                    var sql = $"SELECT COUNT(*) FROM ob_temp_upload WHERE Campaign_Code = @CampaignCode AND [{dateFieldOne}] IS NOT NULL AND ISDATE([{dateFieldOne}]) = 0";
-
-                    // Create a command using the DbContext's connection
-                    using var command = _scrme.Database.GetDbConnection().CreateCommand();
-                    command.CommandText = sql; // Set the SQL query
-                    command.Transaction = transaction.GetDbTransaction(); // Associate with the transaction
-                    command.Parameters.Add(new SqlParameter("@CampaignCode", campaigncode)); // Add parameter
-
-                    // Execute the query and get the scalar result
-                    var invalidDateCount = await command.ExecuteScalarAsync();
-
-                    int inv = Convert.ToInt32(invalidDateCount);
-
-                    if (inv > 0)
-                    {
-                        invalidDateFields.Add(dateFieldOne);
+                        if (!string.IsNullOrWhiteSpace(dateValue))
+                        {
+                            var trimmedValue = dateValue.Trim();
+                            if (!IsValidDateTimeFormat(trimmedValue))
+                            {
+                                invalidDateFields.Add(dateFieldOne);
+                                //Console.WriteLine($"Invalid date in {dateFieldOne}: '{trimmedValue}'"); // Log for debugging
+                                break; // Remove this if you want to log all invalid dates
+                            }
+                        }
                     }
                 }
 
@@ -1474,6 +1463,17 @@ namespace marvel_campaign_NET8.Controllers
 
 
             }
+        }
+
+        // Validate both date and datetime formats
+        private bool IsValidDateTimeFormat(string dateValue)
+        {
+            if (string.IsNullOrWhiteSpace(dateValue))
+                return true; // Treat empty or whitespace as valid since nulls are allowed
+
+            string[] formats = { "yyyy-MM-dd", "MM/dd/yyyy", "dd/MM/yyyy", "yyyy/MM/dd" }; // Add more formats as needed
+            return DateTime.TryParseExact(dateValue, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out _)
+                || DateTime.TryParse(dateValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
         }
 
 

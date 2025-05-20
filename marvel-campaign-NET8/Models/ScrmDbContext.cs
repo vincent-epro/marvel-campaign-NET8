@@ -53,6 +53,8 @@ public partial class ScrmDbContext : DbContext
 
     public virtual DbSet<ob_sales_order> ob_sales_orders { get; set; }
 
+    public virtual DbSet<ob_temp_upload> ob_temp_uploads { get; set; }
+
     public virtual DbSet<outbound_batch> outbound_batches { get; set; }
 
     public virtual DbSet<outbound_call_result> outbound_call_results { get; set; }
@@ -659,6 +661,26 @@ public partial class ScrmDbContext : DbContext
             entity.Property(e => e.Price).HasMaxLength(100);
             entity.Property(e => e.Product_Code).HasMaxLength(100);
             entity.Property(e => e.Updated_Time).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ob_temp_upload>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("ob_temp_upload");
+
+            entity.HasIndex(e => e.Campaign_Code, "IX_Campaign_Code");
+
+            entity.Property(e => e.Campaign_Code).HasMaxLength(100);
+            entity.Property(e => e.DOB).HasMaxLength(1000);
+            entity.Property(e => e.First_Name).HasMaxLength(1000);
+            entity.Property(e => e.Gender).HasMaxLength(1000);
+            entity.Property(e => e.Home_No).HasMaxLength(1000);
+            entity.Property(e => e.Join_Date).HasMaxLength(1000);
+            entity.Property(e => e.Last_Name).HasMaxLength(1000);
+            entity.Property(e => e.Mobile_No).HasMaxLength(1000);
+            entity.Property(e => e.Office_No).HasMaxLength(1000);
+            entity.Property(e => e.Other_Phone_No).HasMaxLength(1000);
         });
 
         modelBuilder.Entity<outbound_batch>(entity =>
