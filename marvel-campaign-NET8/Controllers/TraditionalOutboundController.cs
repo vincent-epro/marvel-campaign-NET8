@@ -1349,7 +1349,10 @@ namespace marvel_campaign_NET8.Controllers
         private async Task<string> CheckCRM_upload_file(JsonObject data)
         {
             string filePath = (data["File_Path"] ?? "").ToString();
-            string worksheet = (data["WorkSheet"] ?? "").ToString();
+            
+            // Ensure worksheet name doesn't end with "$"
+            string worksheet = (data["WorkSheet"] ?? "").ToString().TrimEnd('$');
+
             string campaignCode = (data["Campaign_Code"] ?? "").ToString();
 
             // Validate header count
@@ -1357,7 +1360,7 @@ namespace marvel_campaign_NET8.Controllers
                 .CountAsync(f => f.Campaign_Code == campaignCode);
 
             // Read Excel data
-            DataTable excelData = ReadExcelFile(filePath);
+            DataTable excelData = ReadExcelFile(filePath, worksheet);
 
             if (excelData.Columns.Count != expectedHeaderCount)
             {
@@ -1415,9 +1418,8 @@ namespace marvel_campaign_NET8.Controllers
             return $"Checked OK. Total No. of records: {excelData.Rows.Count}";
         }
 
-        private static DataTable ReadExcelFile(string filePath)
+        private static DataTable ReadExcelFile(string filePath, string worksheetName)
         {
-
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             using (var stream = System.IO.File.Open(filePath, FileMode.Open, FileAccess.Read))
             {
@@ -1428,12 +1430,18 @@ namespace marvel_campaign_NET8.Controllers
                         ConfigureDataTable = (_) => new ExcelDataTableConfiguration() { UseHeaderRow = true }
                     });
 
-                    return result.Tables[0];
+                    if (result.Tables.Contains(worksheetName))
+                    {
+                        return result.Tables[worksheetName];
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Worksheet name not found.");
+                    }
                 }
-
             }
-
         }
+
 
         private async Task<HashSet<string>> ValidateDateFields(HashSet<string> dateFields, string campaignCode)
         {
