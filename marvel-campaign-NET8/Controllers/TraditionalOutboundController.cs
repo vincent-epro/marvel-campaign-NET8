@@ -1415,7 +1415,7 @@ namespace marvel_campaign_NET8.Controllers
             return $"Checked OK. Total No. of records: {excelData.Rows.Count}";
         }
 
-        public static DataTable ReadExcelFile(string filePath)
+        private static DataTable ReadExcelFile(string filePath)
         {
 
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
