@@ -14,6 +14,7 @@ using System.Data.OleDb;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using ExcelDataReader;
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -1356,15 +1357,7 @@ namespace marvel_campaign_NET8.Controllers
                 .CountAsync(f => f.Campaign_Code == campaignCode);
 
             // Read Excel data
-            string strConn = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={filePath};Extended Properties='Excel 12.0 Xml;HDR=YES;IMEX=1;'";
-            string query = $"SELECT * FROM [{worksheet}]";
-            var excelData = new DataTable();
-            using (var conn = new OleDbConnection(strConn))
-            using (var oda = new OleDbDataAdapter(query, conn))
-            {
-                await conn.OpenAsync();
-                oda.Fill(excelData);
-            }
+            DataTable excelData = ReadExcelFile(filePath);
 
             if (excelData.Columns.Count != expectedHeaderCount)
             {
@@ -1403,6 +1396,8 @@ namespace marvel_campaign_NET8.Controllers
             }
             bulkCopy.ColumnMappings.Add("Campaign_Code", "Campaign_Code");
             await bulkCopy.WriteToServerAsync(excelData);
+          
+            await transaction.CommitAsync();
 
             // Validate date fields
             var dateFields = mappings
@@ -1412,12 +1407,32 @@ namespace marvel_campaign_NET8.Controllers
             var invalidDateFields = await ValidateDateFields(dateFields, campaignCode);
             if (invalidDateFields.Any())
             {
-                await transaction.RollbackAsync();
+             //   await transaction.RollbackAsync();//
                 return $"Date type problem for Column(s): {string.Join(", ", invalidDateFields)}";
             }
 
-            await transaction.CommitAsync();
+           // await transaction.CommitAsync();//
             return $"Checked OK. Total No. of records: {excelData.Rows.Count}";
+        }
+
+        public static DataTable ReadExcelFile(string filePath)
+        {
+
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            using (var stream = System.IO.File.Open(filePath, FileMode.Open, FileAccess.Read))
+            {
+                using (var reader = ExcelReaderFactory.CreateReader(stream))
+                {
+                    var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+                    {
+                        ConfigureDataTable = (_) => new ExcelDataTableConfiguration() { UseHeaderRow = true }
+                    });
+
+                    return result.Tables[0];
+                }
+
+            }
+
         }
 
         private async Task<HashSet<string>> ValidateDateFields(HashSet<string> dateFields, string campaignCode)
