@@ -1442,7 +1442,6 @@ namespace marvel_campaign_NET8.Controllers
             }
         }
 
-
         private async Task<HashSet<string>> ValidateDateFields(HashSet<string> dateFields, string campaignCode)
         {
             var invalidDateFields = new HashSet<string>();
@@ -1466,9 +1465,41 @@ namespace marvel_campaign_NET8.Controllers
             if (string.IsNullOrWhiteSpace(dateValue))
                 return true;
 
-            string[] formats = { "yyyy-MM-dd", "MM/dd/yyyy", "dd/MM/yyyy", "yyyy/MM/dd" };
-            return DateTime.TryParseExact(dateValue, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out _)
-                || DateTime.TryParse(dateValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+            // Define common date formats, including those with AM/PM in different languages
+            string[] formats =
+            {
+                "yyyy-MM-dd",
+                "MM/dd/yyyy",
+                "dd/MM/yyyy",
+                "yyyy/MM/dd",
+                "yyyy/M/d tt h:mm:ss", // For formats like "2000/8/19 上午 12:00:00"
+                "yyyy/M/d tth:mm:ss",  // Alternative for some locales
+                "yyyy/MM/dd tt h:mm:ss",
+                "yyyy-MM-dd HH:mm:ss",
+                "dd-MMM-yyyy HH:mm:ss"
+            };
+
+            // Try parsing with invariant culture first
+            if (DateTime.TryParseExact(dateValue, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+                return true;
+
+            // Try parsing with specific cultures (e.g., Chinese, Japanese, etc.)
+            var cultures = new[]
+            {
+                new CultureInfo("zh-TW"), // Traditional Chinese (Taiwan)
+                new CultureInfo("zh-CN"), // Simplified Chinese (China)
+                new CultureInfo("ja-JP"), // Japanese
+                CultureInfo.CurrentCulture // System's current culture
+            };
+
+            foreach (var culture in cultures)
+            {
+                if (DateTime.TryParseExact(dateValue, formats, culture, DateTimeStyles.None, out _) ||
+                    DateTime.TryParse(dateValue, culture, DateTimeStyles.None, out _))
+                    return true;
+            }
+
+            return false;
         }
 
 
