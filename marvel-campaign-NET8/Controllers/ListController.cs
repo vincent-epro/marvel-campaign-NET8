@@ -346,7 +346,7 @@ namespace marvel_campaign_NET8.Controllers
                 {
                     string updateStatus = ChangeCRM_Contact(data);
 
-                    if (updateStatus == "success")
+                    if (updateStatus == AppOutp.STATUS_SUCC)
                     {
                         return Ok(new { result = AppOutp.OutputResult_SUCC, details = "changed contact" });
                     }
@@ -389,7 +389,7 @@ namespace marvel_campaign_NET8.Controllers
 
                 _scrme.SaveChanges();
 
-                return "success";
+                return AppOutp.STATUS_SUCC;
             }
             else
             {
@@ -450,7 +450,7 @@ namespace marvel_campaign_NET8.Controllers
                         // Save the photo and obtain the save status
                         string saveStatus = SaveCRM_Photo(customerId, agentId, photo, photoType);
 
-                        if (saveStatus == "success")
+                        if (saveStatus == AppOutp.STATUS_SUCC)
                         {
                             return Ok(new { result = AppOutp.OutputResult_SUCC, details = "" });
                         }
@@ -494,7 +494,7 @@ namespace marvel_campaign_NET8.Controllers
 
                 _scrme.SaveChanges(); // save to database
 
-                return "success";
+                return AppOutp.STATUS_SUCC;
             }
         }
 

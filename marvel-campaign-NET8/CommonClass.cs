@@ -20,6 +20,8 @@ namespace marvel_campaign_NET8
 
         public const string Not_Auth_Desc = "Not Auth.";
 
+        public const string STATUS_SUCC = "success";
+
     }
 
 
