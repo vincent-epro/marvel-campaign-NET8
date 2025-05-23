@@ -814,11 +814,11 @@ namespace marvel_campaign_NET8.Controllers
             // set up _all_results json data
             JObject allJsonResults = new JObject()
             {
-                new JProperty("result", "success"),
+                new JProperty(AppOutp.OutputResult_Field, "success"),
                 new JProperty("draw", draw),
                 new JProperty("recordsFiltered", recordsTotal),
                 new JProperty("recordsTotal", recordsTotal),
-                new JProperty("details", _con_history_list)
+                new JProperty(AppOutp.OutputDetails_Field, _con_history_list)
             };
 
             // return all results in json format

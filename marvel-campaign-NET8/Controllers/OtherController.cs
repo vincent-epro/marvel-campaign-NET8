@@ -192,8 +192,8 @@ namespace marvel_campaign_NET8.Controllers
             {
                    JObject photoJson = new JObject() // no customer
                     {
-                        new JProperty("result", AppOutp.OutputResult_FAIL),
-                        new JProperty("details", "invalid parameters")
+                        new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_FAIL),
+                        new JProperty(AppOutp.OutputDetails_Field, "invalid parameters")
                     };
 
                 return photoJson;
@@ -215,8 +215,8 @@ namespace marvel_campaign_NET8.Controllers
 
                     JObject photoJson = new JObject() // add to overall json object
                     {
-                        new JProperty("result", AppOutp.OutputResult_SUCC),
-                        new JProperty("details", jsonResults)
+                        new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
+                        new JProperty(AppOutp.OutputDetails_Field, jsonResults)
                     };
 
                     return photoJson;
@@ -225,8 +225,8 @@ namespace marvel_campaign_NET8.Controllers
                 {
                     JObject photoJson = new JObject() // add to overall json object
                     {
-                        new JProperty("result", AppOutp.OutputResult_FAIL),
-                        new JProperty("details", "customer does not exist")
+                        new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_FAIL),
+                        new JProperty(AppOutp.OutputDetails_Field, "customer does not exist")
                     };
 
                     return photoJson;
@@ -414,8 +414,8 @@ namespace marvel_campaign_NET8.Controllers
 
                 JObject allJsonResults  = new JObject() // add to overall json object
                     {
-                        new JProperty("result", AppOutp.OutputResult_SUCC),
-                        new JProperty("details", tmp_json)
+                        new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
+                        new JProperty(AppOutp.OutputDetails_Field, tmp_json)
                     };
 
                 return allJsonResults;
@@ -429,8 +429,8 @@ namespace marvel_campaign_NET8.Controllers
 
                 JObject allJsonResults = new JObject()
                     {
-                        new JProperty("result", AppOutp.OutputResult_SUCC),
-                        new JProperty("details", tmp_json)
+                        new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
+                        new JProperty(AppOutp.OutputDetails_Field, tmp_json)
                     };
 
                 return allJsonResults;

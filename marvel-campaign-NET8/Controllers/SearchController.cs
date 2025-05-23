@@ -104,8 +104,8 @@ namespace marvel_campaign_NET8.Controllers
             if (countOnly == "Y")
             {
                 return new JObject() {
-                    new JProperty("result", AppOutp.OutputResult_SUCC),
-                    new JProperty("details", _q.Count())
+                    new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
+                    new JProperty(AppOutp.OutputDetails_Field, _q.Count())
                 };
             }
             else if (_q.Count() > 0)
@@ -139,8 +139,8 @@ namespace marvel_campaign_NET8.Controllers
 
             }
             return new JObject() {
-                new JProperty("result", AppOutp.OutputResult_SUCC),
-                new JProperty("details", jsonResultList)
+                new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
+                new JProperty(AppOutp.OutputDetails_Field, jsonResultList)
             };
 
         }
@@ -336,8 +336,8 @@ namespace marvel_campaign_NET8.Controllers
             }
 
             return new JObject() {
-                new JProperty("result", AppOutp.OutputResult_SUCC),
-                new JProperty("details", jsonResultList)
+                new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
+                new JProperty(AppOutp.OutputDetails_Field, jsonResultList)
             };
         }
 

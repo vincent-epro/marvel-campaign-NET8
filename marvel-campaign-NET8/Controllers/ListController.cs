@@ -98,8 +98,8 @@ namespace marvel_campaign_NET8.Controllers
             // set up _all_results json data
             JObject allJsonResults = new JObject()
             {
-                new JProperty("result", AppOutp.OutputResult_SUCC),
-                new JProperty("details", _call_history_list)
+                new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
+                new JProperty(AppOutp.OutputDetails_Field, _call_history_list)
             };
 
             // return all results in json format
@@ -252,8 +252,8 @@ namespace marvel_campaign_NET8.Controllers
 
             JObject allJsonResults = new JObject()
             {
-                new JProperty("result", AppOutp.OutputResult_SUCC),
-                new JProperty("details", connectionType)
+                new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
+                new JProperty(AppOutp.OutputDetails_Field, connectionType)
             };
             // return all results in json format
             return allJsonResults;
