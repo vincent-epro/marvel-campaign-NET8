@@ -542,8 +542,8 @@ namespace marvel_campaign_NET8.Controllers
                         details = new
                         {
                             // retrieve the customer_id and internal_case_no from the new case
-                            Customer_Id = _new_case.First().Customer_Id,
-                            Internal_Case_No = _new_case.First().Internal_Case_No
+                            Customer_Id = _new_case[0].Customer_Id,
+                            Internal_Case_No = _new_case[0].Internal_Case_No
                         }
                     });
 

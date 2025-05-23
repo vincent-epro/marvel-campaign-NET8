@@ -145,7 +145,7 @@ namespace marvel_campaign_NET8.Controllers
 
         }
 
-        private void SetCaseCondition(JsonNode? searchObj, ref List<object> params_a, ref string cond_a)
+        private static void SetCaseCondition(JsonNode? searchObj, ref List<object> params_a, ref string cond_a)
         {
             string list_name = (searchObj["list_name"] ?? "").ToString();
             string field_name = (searchObj["field_name"] ?? "").ToString();

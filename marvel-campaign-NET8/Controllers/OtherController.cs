@@ -267,24 +267,6 @@ namespace marvel_campaign_NET8.Controllers
 
         private JObject GetCRM_NationalityMarketProfile(string language)
         {
-            // join tables from contact_list, def_nationality, def_market and def_profile
-            var _nationality_info = from _n in _scrme.def_nationalities
-                                    join _m in _scrme.def_markets on _n.MarketID equals _m.MarketID into _joined_nm
-                                    from _nm in _joined_nm.DefaultIfEmpty()
-                                    join _p in _scrme.def_profiles on _n.ProfileID equals _p.ID into _joined_np
-                                    from _np in _joined_np.DefaultIfEmpty()
-                                    select new
-                                    {
-                                        _n,
-                                        _nm.MarketName,
-                                        MarketValidity = _nm.isValid,
-                                        _np.Profile,
-                                        ProfileValidity = _np.isValid
-                                    };
-
-            // declare a json object to contain all data lists
-            // JObject allJsonResults = new JObject(); //old
-
             // declare a list of json objects containing the each row of data
             List<JObject> natItemList = new List<JObject>();
             List<JObject> mktItemList = new List<JObject>();
