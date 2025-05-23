@@ -897,33 +897,9 @@ namespace marvel_campaign_NET8.Controllers
                                               (_r.Opt_Out == null || !_r.Opt_Out.Equals("Y"))
                                          select _r;
 
-            if (assign_from == 0)
-            {
-                _pro = _pro.Where(_c => _c.Attempt == 0 && _c.Agent_Id == null);
 
-            }
-            else if (assign_from == -999)
-            {
-                if (call_status == "NewLead")
-                {
-                    _pro = _pro.Where(_c => _c.Attempt == 0 && _c.Agent_Id != null);
-                }
-                else
-                {
-                    _pro = _pro.Where(_c => _c.Call_Status == call_status && _c.Call_Reason == call_reason && _c.Agent_Id != null);
-                }
-            }
-            else
-            {
-                if (call_status == "NewLead")
-                {
-                    _pro = _pro.Where(_c => _c.Attempt == 0 && _c.Agent_Id == assign_from);
-                }
-                else
-                {
-                    _pro = _pro.Where(_c => _c.Call_Status == call_status && _c.Call_Reason == call_reason && _c.Agent_Id == assign_from);
-                }
-            }
+            _pro = ApplyAssignmentFilter(_pro, assign_from, call_status, call_reason);
+
 
             if (gender != "")
             {
@@ -941,6 +917,21 @@ namespace marvel_campaign_NET8.Controllers
 
 
             return _pro;
+        }
+
+        private static IQueryable<ob_result> ApplyAssignmentFilter(IQueryable<ob_result> query, int assign_from, string call_status, string call_reason)
+        {
+            if (assign_from == 0)
+                return query.Where(_c => _c.Attempt == 0 && _c.Agent_Id == null);
+
+            if (assign_from == -999)
+                return call_status == "NewLead"
+                    ? query.Where(_c => _c.Attempt == 0 && _c.Agent_Id != null)
+                    : query.Where(_c => _c.Call_Status == call_status && _c.Call_Reason == call_reason && _c.Agent_Id != null);
+
+            return call_status == "NewLead"
+                ? query.Where(_c => _c.Attempt == 0 && _c.Agent_Id == assign_from)
+                : query.Where(_c => _c.Call_Status == call_status && _c.Call_Reason == call_reason && _c.Agent_Id == assign_from);
         }
 
 
