@@ -47,7 +47,7 @@ namespace marvel_campaign_NET8.Controllers
             }
             catch (Exception)
             {
-                return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.OutputDetails_Inv_Para });
             }
         }
 
@@ -129,7 +129,7 @@ namespace marvel_campaign_NET8.Controllers
             }
             catch (Exception)
             {
-                return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.OutputDetails_Inv_Para });
 
             }
         }

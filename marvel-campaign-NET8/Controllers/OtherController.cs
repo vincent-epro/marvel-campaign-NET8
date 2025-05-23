@@ -80,7 +80,7 @@ namespace marvel_campaign_NET8.Controllers
             }
             catch (Exception)
             {
-                return Ok(new { result = AppOutp.OutputResult_FAIL, details = "invalid parameters" });
+                return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.OutputDetails_Inv_Para });
             }
         }
 
@@ -193,7 +193,7 @@ namespace marvel_campaign_NET8.Controllers
                    JObject photoJson = new JObject() // no customer
                     {
                         new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_FAIL),
-                        new JProperty(AppOutp.OutputDetails_Field, "invalid parameters")
+                        new JProperty(AppOutp.OutputDetails_Field, AppOutp.OutputDetails_Inv_Para)
                     };
 
                 return photoJson;

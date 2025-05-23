@@ -16,6 +16,8 @@ namespace marvel_campaign_NET8
         public const string OutputDetails_Field = "details";
 
         public const string OutputResult_SUCC = "success";
+        public const string OutputDetails_Inv_Para = "Invalid Parameters.";
+
         public const string OutputResult_FAIL = "fail";
 
         public const string Not_Auth_Desc = "Not Auth.";

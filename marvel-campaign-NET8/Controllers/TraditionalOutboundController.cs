@@ -255,7 +255,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     if (batchcode == string.Empty || campaigncode == string.Empty)
                     {
-                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.OutputDetails_Inv_Para });
                     }
                     else
                     {
@@ -552,7 +552,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     if (batchcode == string.Empty || campaigncode == string.Empty)
                     {
-                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.OutputDetails_Inv_Para });
                     }
                     else
                     {
@@ -845,7 +845,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     if (batchcode == string.Empty || campaigncode == string.Empty || assign_from == -1)
                     {
-                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.OutputDetails_Inv_Para });
                     }
                     else
                     {
@@ -962,7 +962,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     if (batchcode == string.Empty || campaigncode == string.Empty || assign_from == -1)
                     {
-                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = "Invalid Parameters." });
+                        return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.OutputDetails_Inv_Para });
                     }
                     else
                     {
