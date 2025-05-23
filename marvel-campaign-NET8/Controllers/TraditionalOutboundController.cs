@@ -63,7 +63,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             // obtain data
             var _frms = (from _f in _scrme.ob_input_forms
-                         where _f.Form_Status == "Active"
+                         where _f.Form_Status == AppOutp.STATUS_Active
                          select _f);
 
             return _frms.ToList();
@@ -104,7 +104,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             // obtain data
             var _frms = (from _f in _scrme.ob_campaigns
-                         where _f.Campaign_Status == "Active"
+                         where _f.Campaign_Status == AppOutp.STATUS_Active
                          orderby _f.Created_Time descending
                          select _f).Take(500);
 
@@ -146,7 +146,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             // obtain data 
             var _frms = (from _f in _scrme.ob_batches
-                         where _f.Batch_Status == "Active"
+                         where _f.Batch_Status == AppOutp.STATUS_Active
                          select _f);
 
             return _frms.ToList();
@@ -230,7 +230,7 @@ namespace marvel_campaign_NET8.Controllers
         private List<ob_sales_order> GetCRM_OBSalesOrder(int callId)
         {
             var _rt = (from _r in _scrme.ob_sales_orders
-                       where _r.Call_Id == callId && _r.Order_Status == "Active"
+                       where _r.Call_Id == callId && _r.Order_Status == AppOutp.STATUS_Active
                        select _r);
 
             return _rt.ToList();
@@ -294,7 +294,7 @@ namespace marvel_campaign_NET8.Controllers
             _new_cp_item.Plan_Code = (data["Plan_Code"] ?? "").ToString();
             _new_cp_item.Price = (data["Price"] ?? "").ToString();
 
-            _new_cp_item.Order_Status = "Active";
+            _new_cp_item.Order_Status = AppOutp.STATUS_Active;
 
             _new_cp_item.Created_By = agentId;
             _new_cp_item.Created_Time = DateTime.Now;
@@ -1141,7 +1141,7 @@ namespace marvel_campaign_NET8.Controllers
             string campaigncode = (data["Campaign_Code"] ?? "").ToString();
 
             var _cp = (from _c in _scrme.ob_campaigns
-                       where _c.Campaign_Status == "Active" && _c.Campaign_Code == campaigncode
+                       where _c.Campaign_Status == AppOutp.STATUS_Active && _c.Campaign_Code == campaigncode
                        select _c);
 
             // exists
@@ -1160,7 +1160,7 @@ namespace marvel_campaign_NET8.Controllers
                 _new_cp_item.Form_Id = formId;
                 _new_cp_item.Form_Name = (data["Form_Name"] ?? "").ToString();
                 _new_cp_item.Campaign_Description = (data["Campaign_Description"] ?? "").ToString();
-                _new_cp_item.Campaign_Status = "Active";
+                _new_cp_item.Campaign_Status = AppOutp.STATUS_Active;
                 _new_cp_item.Created_By = agentId;
                 _new_cp_item.Created_Time = DateTime.Now;
                 _new_cp_item.Updated_By = agentId;
@@ -1546,7 +1546,7 @@ namespace marvel_campaign_NET8.Controllers
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             var _b = (from _c in _scrme.ob_batches
-                      where _c.Batch_Status == "Active" && _c.Campaign_Code == campaigncode && _c.Batch_Code == batchcode
+                      where _c.Batch_Status == AppOutp.STATUS_Active && _c.Campaign_Code == campaigncode && _c.Batch_Code == batchcode
                       select _c);
 
             // exists

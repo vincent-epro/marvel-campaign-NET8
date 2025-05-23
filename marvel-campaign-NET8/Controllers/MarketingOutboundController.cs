@@ -67,7 +67,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             // obtain data
             var _frms = (from _f in _scrme.outbound_input_forms
-                         where _f.Form_Status == "Active"
+                         where _f.Form_Status == AppOutp.STATUS_Active
                          select _f);
 
                 return _frms.ToList();
@@ -116,7 +116,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             // obtain data 
             var _frms = (from _f in _scrme.outbound_batches
-                         where _f.Batch_Status == "Active"
+                         where _f.Batch_Status == AppOutp.STATUS_Active
                          select _f);
 
             return _frms.ToList();
@@ -396,7 +396,7 @@ namespace marvel_campaign_NET8.Controllers
                 outbound_batch _cpn_item = new outbound_batch();
 
                 _cpn_item.Batch_Name = batch_name;
-                _cpn_item.Batch_Status = "Active";
+                _cpn_item.Batch_Status = AppOutp.STATUS_Active;
                 _cpn_item.Form_Id = form_id;
                 _cpn_item.Channel_Call = channel_call;
                 _cpn_item.Channel_Email = channel_email;

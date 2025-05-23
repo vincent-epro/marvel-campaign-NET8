@@ -24,6 +24,9 @@ namespace marvel_campaign_NET8
 
         public const string STATUS_SUCC = "success";
 
+        public const string STATUS_Active = "Active";
+
+
     }
 
 
