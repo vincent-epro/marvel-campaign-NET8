@@ -282,7 +282,7 @@ namespace marvel_campaign_NET8.Controllers
             string batchcode = (data["Batch_Code"] ?? "").ToString();
             string campaigncode = (data["Campaign_Code"] ?? "").ToString();
 
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             int callId = Convert.ToInt32((data["Call_Id"] ?? "-1").ToString());
 
             ob_sales_order _new_cp_item = new ob_sales_order();
@@ -337,7 +337,7 @@ namespace marvel_campaign_NET8.Controllers
         private void UpdateCRM_OBSalesOrder(JsonObject data)
         {
             int pID = Convert.ToInt32((data["Sa_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             var _pro = (from _c in _scrme.ob_sales_orders
                         where _c.Sa_Id == pID
@@ -357,7 +357,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     //    var fieldType = item.Value?.GetValueKind(); //old
 
-                    if (fieldName != "Agent_Id" && fieldName != "Token")
+                    if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
                     {
                         PropertyInfo? fieldProp = new ob_sales_order().GetType().GetProperty(fieldName);
                         Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
@@ -436,7 +436,7 @@ namespace marvel_campaign_NET8.Controllers
         private void UpdateCRM_OBCallList(JsonObject data)
         {
             int pID = Convert.ToInt32((data["Call_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             var _pro = (from _c in _scrme.ob_results
                         where _c.Call_Id == pID
@@ -456,7 +456,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     //    var fieldType = item.Value?.GetValueKind(); //old
 
-                    if (fieldName != "Agent_Id" && fieldName != "Token")
+                    if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
                     {
                         PropertyInfo? fieldProp = new ob_result().GetType().GetProperty(fieldName);
                         Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
@@ -1031,7 +1031,7 @@ namespace marvel_campaign_NET8.Controllers
 
                 _new_cp_item.Assignment_Details = Convert.ToString(data);
 
-                _new_cp_item.Created_By = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+                _new_cp_item.Created_By = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
                 _new_cp_item.Created_Time = DateTime.Now;
 
 
@@ -1151,7 +1151,7 @@ namespace marvel_campaign_NET8.Controllers
             }
             else
             {
-                int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+                int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
                 int formId = Convert.ToInt32((data["Form_Id"] ?? "-1").ToString());
 
                 ob_campaign _new_cp_item = new ob_campaign();
@@ -1205,7 +1205,7 @@ namespace marvel_campaign_NET8.Controllers
         private void UpdateCRM_OBCampaign(JsonObject data)
         {
             int cID = Convert.ToInt32((data["Campaign_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             string s_action = (data["S_Action"] ?? "").ToString();
 
             var _cs = (from _c in _scrme.ob_campaigns
@@ -1268,7 +1268,7 @@ namespace marvel_campaign_NET8.Controllers
 
         private void AddCRM_OBCampaignHeader(JsonObject data)
         {
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             int campaignId = Convert.ToInt32((data["Campaign_Id"] ?? "-1").ToString());
             string campaigncode = (data["Campaign_Code"] ?? "").ToString();
 
@@ -1543,7 +1543,7 @@ namespace marvel_campaign_NET8.Controllers
             string campaigncode = (data["Campaign_Code"] ?? "").ToString();
             string b_start = (data["Batch_Start_Date"] ?? "").ToString();
             string b_end = (data["Batch_End_Date"] ?? "").ToString();
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             var _b = (from _c in _scrme.ob_batches
                       where _c.Batch_Status == "Active" && _c.Campaign_Code == campaigncode && _c.Batch_Code == batchcode

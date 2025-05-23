@@ -55,7 +55,7 @@ namespace marvel_campaign_NET8.Controllers
 
                 foreach (var key in Request.Form.Keys)
                 {
-                    if (key == "Agent_Id")
+                    if (key == AppInp.InputAuth_Agent_Id)
                     {
                         //    agentId = Convert.ToInt32(Request.Form[key]);//
 

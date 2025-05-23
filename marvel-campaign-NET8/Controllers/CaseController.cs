@@ -48,7 +48,7 @@ namespace marvel_campaign_NET8.Controllers
         private void UpdateCRM_CaseReminder(JsonObject data)
         {
             int caseNo = Convert.ToInt32((data["Case_No"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
          //   DateTime scheduledTime = Convert.ToDateTime((data["Scheduled_Time"] ?? DateTime.MinValue).ToString()); //old
 
             // declare a dictionary object where key = fieldName, value = fieldValue 
@@ -60,7 +60,7 @@ namespace marvel_campaign_NET8.Controllers
                 string fieldName = item.Key;
                 string fieldValue = item.Value?.ToString() ?? string.Empty;
 
-                if (fieldName != "Case_No" && fieldName != "Agent_Id" && fieldName != "Scheduled_Time" && fieldName != "Token")
+                if (fieldName != "Case_No" && fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Scheduled_Time" && fieldName != "Token")
                 {
                     fieldsToBeAdded.Add(fieldName, fieldValue); // add field items to dictionary
                 }

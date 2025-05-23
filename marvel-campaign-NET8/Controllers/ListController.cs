@@ -371,7 +371,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             int caseNo = Convert.ToInt32((data["Case_No"] ?? "-1").ToString());
             int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             // obtain results from case_result
             var _case_item = (from _case in _scrme.case_results
@@ -425,7 +425,7 @@ namespace marvel_campaign_NET8.Controllers
                     {
                         customerId = Convert.ToInt32(Request.Form[key]);
                     }
-                    else if (key == "Agent_Id")
+                    else if (key == AppInp.InputAuth_Agent_Id)
                     {
                         agentId = Convert.ToInt32(Request.Form[key]);
                         tk_agentId = Convert.ToString(Request.Form[key]);
@@ -568,7 +568,7 @@ namespace marvel_campaign_NET8.Controllers
 
             int connId = Convert.ToInt32((data["Conn_Id"] ?? "-1").ToString());
             int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             string callType = (data["Call_Type"] ?? "").ToString();
             string typeDetails = (data["Type_Details"] ?? "").ToString();
 
@@ -652,7 +652,7 @@ namespace marvel_campaign_NET8.Controllers
         private void UpdateCRM_Customer(JsonObject data)
         {
             int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             // assign form body values to table item
             var customerData = data["Customer_Data"];
@@ -682,7 +682,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     //    var fieldType = item.Value?.GetValueKind(); //old
 
-                        if (fieldName != "Agent_Id" && fieldName != "Token")
+                        if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
                         {
                             PropertyInfo? fieldProp = new contact_list().GetType().GetProperty(fieldName);
                             Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
@@ -777,7 +777,7 @@ namespace marvel_campaign_NET8.Controllers
         private IActionResult UpdateCaseResult(JsonObject data)
         {
             int internalCaseNo = Convert.ToInt32((data["Internal_Case_No"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             // string replyType = (data["Reply_Type"] ?? "").ToString(); //old
             // string replyDetails = (data["Reply_Details"] ?? "").ToString(); /old
 
@@ -854,7 +854,7 @@ namespace marvel_campaign_NET8.Controllers
             string fieldName = item.Key;
             var fieldValue = item.Value?.ToString() ?? null;
 
-            if (fieldName != "Agent_Id" && fieldName != "Token")
+            if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
             {
                 PropertyInfo? fieldProp = new case_result().GetType().GetProperty(fieldName);
                 Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;

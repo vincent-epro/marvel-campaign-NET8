@@ -375,7 +375,7 @@ namespace marvel_campaign_NET8.Controllers
             {
                 string batch_name = (data["Batch_Name"] ?? "").ToString();
                 int form_id = Convert.ToInt32((data["Form_Id"] ?? "-1").ToString());
-                int agent_id = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+                int agent_id = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
                 string batch_details = (data["Batch_Details"] ?? "").ToString();
 
                 string channel_call = (data["Channel_Call"] ?? "").ToString();
@@ -653,7 +653,7 @@ namespace marvel_campaign_NET8.Controllers
         private void UpdateCRM_OutboundBatch(JsonObject data)
         {
             int pID = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             var _pro = (from _c in _scrme.outbound_batches
                         where _c.Batch_Id == pID // && _c.Channel_SMS == "Y"
@@ -673,7 +673,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     //    var fieldType = item.Value?.GetValueKind(); //old
 
-                    if (fieldName != "Agent_Id" && fieldName != "Token")
+                    if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
                     {
                         PropertyInfo? fieldProp = new outbound_batch().GetType().GetProperty(fieldName);
                         Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
@@ -752,7 +752,7 @@ namespace marvel_campaign_NET8.Controllers
         private void UpdateCRM_OutboundCallList(JsonObject data)
         {
             int pID = Convert.ToInt32((data["Call_Lead_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             var _pro = (from _c in _scrme.outbound_call_results
                         where _c.Call_Lead_Id == pID
@@ -772,7 +772,7 @@ namespace marvel_campaign_NET8.Controllers
 
                     //    var fieldType = item.Value?.GetValueKind(); //old
 
-                    if (fieldName != "Agent_Id" && fieldName != "Token")
+                    if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
                     {
                         PropertyInfo? fieldProp = new outbound_call_result().GetType().GetProperty(fieldName);
                         Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;

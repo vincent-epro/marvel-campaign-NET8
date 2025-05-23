@@ -105,7 +105,7 @@ namespace marvel_campaign_NET8.Controllers
             // declare db table items
             call_filter _filter_item = new call_filter();
 
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             string filterType = (data["Filter_Type"] ?? "").ToString();
             string firstName = (data["First_Name"] ?? "").ToString();
             string lastName = (data["Last_Name"] ?? "").ToString();
@@ -176,7 +176,7 @@ namespace marvel_campaign_NET8.Controllers
         private void UpdateCRM_CallFilter(JsonObject data)
         {
             int filterId = Convert.ToInt32((data["Filter_Id"] ?? "-1").ToString());
-            int agentId = Convert.ToInt32((data["Agent_Id"] ?? "-1").ToString());
+            int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
 
             // declare a dictionary object where key = fieldName, value = fieldValue 
@@ -188,7 +188,7 @@ namespace marvel_campaign_NET8.Controllers
                 string fieldName = item.Key;
                 string fieldValue = item.Value?.ToString() ?? string.Empty;
 
-                if (fieldName != "Agent_Id" && fieldName != "Filter_Id" && fieldName != "Token")
+                if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Filter_Id" && fieldName != "Token")
                 {
                     fieldsToBeAdded.Add(fieldName, fieldValue); // add field items to dictionary
                 }
