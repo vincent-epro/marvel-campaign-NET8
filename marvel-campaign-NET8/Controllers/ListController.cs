@@ -631,97 +631,94 @@ namespace marvel_campaign_NET8.Controllers
             int customerId = Convert.ToInt32((data[AppInp.Input_Customer_Id] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
-            // assign form body values to table item
-            var customerData = data["Customer_Data"];
+            var customerData = data["Customer_Data"] as JsonObject;
 
-            // obtain single customer record based on the customer id
-            var _customer = (from _c in _scrme.contact_lists
-                             where _c.Customer_Id == customerId
-                             select _c).SingleOrDefault<contact_list>();
-
-            // if there is at least 1 customer
-            if (_customer != null)
+            if (customerData == null)
             {
-
-                Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
-
-                var customerDataList = customerData as JsonObject;
-
-                if (customerDataList != null)
-                {
-
-                    // iterate through the form data and assign the field name and field value to dictionary
-                    foreach (var item in customerDataList)
-                    {
-
-                        string fieldName = item.Key;
-                        var fieldValue = item.Value?.ToString() ?? null;
-
-                    //    var fieldType = item.Value?.GetValueKind(); //old
-
-                        if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
-                        {
-                            PropertyInfo? fieldProp = new contact_list().GetType().GetProperty(fieldName);
-                            Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
-                            string ftype = type.Name;
-
-                            if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
-                            {
-                                if (fieldValue != null)
-                                {
-                                    fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
-                                }
-                                else
-                                {
-                                    fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
-                                }
-                            }
-                            else
-                            {
-                                if (fieldValue != null)
-                                {
-                                    fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
-                                }
-                                else
-                                {
-                                    fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
-                                }
-                            }
-                        }
-                    }
-
-                }
-
-
-                foreach (var fields in fieldsToBeUpdatedDict)
-                {
-                    // find the column name that matches with the field name in dictionary
-                    PropertyInfo? properInfo = _customer.GetType().GetProperty(fields.Key);
-                    properInfo?.SetValue(_customer, fields.Value);
-                }
-
-
-
-
-                // updated other columns
-                if (_customer.Is_Valid == "N") // insert customer info
-                {
-                    _customer.Created_By = agentId;
-                    _customer.Created_Time = DateTime.Now;
-                    _customer.Is_Valid = "Y";
-                }
-                _customer.Updated_By = agentId;
-                _customer.Updated_Time = DateTime.Now;
-
-                if (_customer.Is_Valid == "Y")
-                {
-                    CopyTo_ContactLog(_customer); // copy contact_list data to contact_list_log
-                }
-
-                _scrme.SaveChanges();
-
+                return; // Early exit if customer data is invalid
             }
 
+            var customer = _scrme.contact_lists
+                .SingleOrDefault(c => c.Customer_Id == customerId);
+
+            if (customer == null)
+            {
+                return; // Early exit if customer not found
+            }
+
+            UpdateCustomerFields(customer, customerData);
+            UpdateAuditFields(customer, agentId);
+
+            if (customer.Is_Valid == "Y")
+            {
+                CopyTo_ContactLog(customer);
+            }
+
+            _scrme.SaveChanges();
+        }
+
+        private static void UpdateCustomerFields(contact_list customer, JsonObject customerData)
+        {
+            var fieldsToUpdate = BuildFieldsToUpdate(customerData);
+
+            foreach (var field in fieldsToUpdate)
+            {
+                PropertyInfo? propertyInfo = customer.GetType().GetProperty(field.Key);
+                propertyInfo?.SetValue(customer, field.Value);
+            }
+        }
+
+        private static Dictionary<string, dynamic> BuildFieldsToUpdate(JsonObject customerData)
+        {
+            var fieldsToUpdate = new Dictionary<string, dynamic>();
+
+            foreach (var item in customerData)
+            {
+                if (item.Key is AppInp.InputAuth_Agent_Id or "Token")
+                {
+                    continue;
+                }
+
+                var fieldValue = item.Value?.ToString();
+                PropertyInfo? propertyInfo = new contact_list().GetType().GetProperty(item.Key);
+
+                if (propertyInfo == null)
+                {
+                    continue;
+                }
+
+                Type targetType = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
+
+                if (IsNumericOrSpecialType(targetType))
+                {
+                    fieldsToUpdate[item.Key] = fieldValue != null ? Convert.ChangeType(fieldValue, targetType) : null;
+                }
+                else
+                {
+                    fieldsToUpdate[item.Key] = fieldValue ?? string.Empty;
+                }
+            }
+
+            return fieldsToUpdate;
+        }
+
+        private static bool IsNumericOrSpecialType(Type type)
+        {
+            return type == typeof(short) || type == typeof(int) || type == typeof(long) ||
+                   type == typeof(DateTime) || type == typeof(bool);
+        }
+
+        private static void UpdateAuditFields(contact_list customer, int agentId)
+        {
+            if (customer.Is_Valid == "N")
+            {
+                customer.Created_By = agentId;
+                customer.Created_Time = DateTime.Now;
+                customer.Is_Valid = "Y";
+            }
+
+            customer.Updated_By = agentId;
+            customer.Updated_Time = DateTime.Now;
         }
 
 
