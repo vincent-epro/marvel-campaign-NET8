@@ -347,7 +347,7 @@ namespace marvel_campaign_NET8.Controllers
         private string ChangeCRM_Contact(JsonObject data)
         {
             int caseNo = Convert.ToInt32((data["Case_No"] ?? "-1").ToString());
-            int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
+            int customerId = Convert.ToInt32((data[AppInp.Input_Customer_Id] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             // obtain results from case_result
@@ -398,7 +398,7 @@ namespace marvel_campaign_NET8.Controllers
 
                 foreach (var key in Request.Form.Keys)
                 {
-                    if (key == "Customer_Id")
+                    if (key == AppInp.Input_Customer_Id)
                     {
                         customerId = Convert.ToInt32(Request.Form[key]);
                     }
@@ -544,7 +544,7 @@ namespace marvel_campaign_NET8.Controllers
             case_result _case_item = new case_result();
 
             int connId = Convert.ToInt32((data["Conn_Id"] ?? "-1").ToString());
-            int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
+            int customerId = Convert.ToInt32((data[AppInp.Input_Customer_Id] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             string callType = (data["Call_Type"] ?? "").ToString();
             string typeDetails = (data["Type_Details"] ?? "").ToString();
@@ -628,7 +628,7 @@ namespace marvel_campaign_NET8.Controllers
 
         private void UpdateCRM_Customer(JsonObject data)
         {
-            int customerId = Convert.ToInt32((data["Customer_Id"] ?? "-1").ToString());
+            int customerId = Convert.ToInt32((data[AppInp.Input_Customer_Id] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             // assign form body values to table item

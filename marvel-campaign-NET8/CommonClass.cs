@@ -8,6 +8,9 @@ namespace marvel_campaign_NET8
     {
         public const string InputAuth_Agent_Id = "Agent_Id";
         public const string InputAuth_Token = "Token";
+
+        public const string Input_Customer_Id = "Customer_Id";
+
     }
 
     public static class AppOutp
