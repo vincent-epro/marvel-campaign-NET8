@@ -267,177 +267,64 @@ namespace marvel_campaign_NET8.Controllers
 
         private JObject GetCRM_NationalityMarketProfile(string language)
         {
-            // declare a list of json objects containing the each row of data
-            List<JObject> natItemList = new List<JObject>();
-            List<JObject> mktItemList = new List<JObject>();
-            List<JObject> profItemList = new List<JObject>();
-
-            // obtain linq result from tables
-            var _def_nationality = from _n in _scrme.def_nationalities
-                                   where _n.isValid == "Y"
-                                   orderby _n.Sort
-                                   select _n;
-
-            var _def_market = from _m in _scrme.def_markets
-                              where _m.isValid == "Y"
-                              orderby _m.Sort
-                              select _m;
-
-            var _def_profile = from _p in _scrme.def_profiles
-                               where _p.isValid == "Y"
-                               select _p;
-
-            // table has at least 1 item
-            if (_def_nationality.Count() > 0 && _def_market.Count() > 0 && _def_profile.Count() > 0)
+            JObject allJsonResults = new JObject
             {
+                { AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC }
+            };
 
-                // iterate through row items in _def_nationality
-                foreach (var _item in _def_nationality)
+            var tables = new Dictionary<string, (IQueryable<dynamic>, string, string)>
+            {
+                { "NationalityArray", (_scrme.def_nationalities.Where(n => n.isValid == "Y").OrderBy(n => n.Sort), "NationalityName", "NationalityName_TC") },
+                { "MarketArray", (_scrme.def_markets.Where(m => m.isValid == "Y").OrderBy(m => m.Sort), "MarketName", "MarketName_TC") },
+                { "ProfileArray", (_scrme.def_profiles.Where(p => p.isValid == "Y"), "Profile", "Profile_TC") }
+            };
+
+            if (tables.All(t => t.Value.Item1.Any()))
+            {
+                JObject detailsJson = new JObject();
+
+                foreach (var table in tables)
                 {
-                    // declare a temp json object to store each _contact_log_item
-                    JObject tempJson = new JObject();
-                    tempJson.RemoveAll(); // clear the object
-
-                    // iterate each column of _item
-                    foreach (PropertyInfo property in _item.GetType().GetProperties())
-                    {
-                        if (language == "en")
-                        {
-                            if (property.Name != "isValid" && property.Name != "NationalityName_TC")
-                            {
-                                tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
-                            }
-                        }
-                        else if (language == "tc")
-                        {
-                            // show chinese name
-                            if (property.Name != "isValid" && property.Name != "NationalityName")
-                            {
-                                if (property.Name == "NationalityName_TC")
-                                {
-                                    tempJson.Add(new JProperty("NationalityName", property.GetValue(_item)));
-                                }
-                                else
-                                {
-                                    tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
-                                }
-
-                            }
-                        }
-
-                    }
-
-                    natItemList.Add(tempJson); // add the item to list
+                    detailsJson.Add(table.Key, ProcessTableItems(table.Value.Item1, language, table.Value.Item2, table.Value.Item3));
                 }
 
-                // iterate through row items in _def_market
-                foreach (var _item in _def_market)
-                {
-                    // declare a temp json object to store each _contact_log_item
-                    JObject tempJson = new JObject();
-                    tempJson.RemoveAll(); // clear the object
-
-                    // iterate each column of _item
-                    foreach (PropertyInfo property in _item.GetType().GetProperties())
-                    {
-
-                        if (language == "en")
-                        {
-                            if (property.Name != "isValid" && property.Name != "MarketName_TC")
-                            {
-                                tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
-                            }
-                        }
-                        else if (language == "tc")
-                        {
-                            // show chinese name
-                            if (property.Name != "isValid" && property.Name != "MarketName")
-                            {
-                                if (property.Name == "MarketName_TC")
-                                {
-                                    tempJson.Add(new JProperty("MarketName", property.GetValue(_item)));
-                                }
-                                else
-                                {
-                                    tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
-                                }
-                            }
-                        }
-                    }
-                    mktItemList.Add(tempJson); // add the item to list
-                }
-
-                // iterate through row items in _def_market
-                foreach (var _item in _def_profile)
-                {
-                    // declare a temp json object to store each _contact_log_item
-                    JObject tempJson = new JObject();
-                    tempJson.RemoveAll(); // clear the object
-
-                    // iterate each column of _item
-                    foreach (PropertyInfo property in _item.GetType().GetProperties())
-                    {
-
-                        if (language == "en")
-                        {
-                            if (property.Name != "isValid" && property.Name != "Profile_TC")
-                            {
-                                tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
-                            }
-                        }
-                        else if (language == "tc")
-                        {
-                            // show chinese name
-                            if (property.Name != "isValid" && property.Name != "Profile")
-                            {
-                                if (property.Name == "Profile_TC")
-                                {
-                                    tempJson.Add(new JProperty("Profile", property.GetValue(_item)));
-                                }
-                                else
-                                {
-                                    tempJson.Add(new JProperty(property.Name, property.GetValue(_item)));
-                                }
-                            }
-                        }
-                    }
-                    profItemList.Add(tempJson); // add the item to list
-                }
-
-                JObject tmp_json = new JObject()
-                {
-                        new JProperty("NationalityArray", natItemList),
-                        new JProperty("MarketArray", mktItemList),
-                        new JProperty("ProfileArray", profItemList),
-                };
-
-
-                JObject allJsonResults  = new JObject() // add to overall json object
-                    {
-                        new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
-                        new JProperty(AppOutp.OutputDetails_Field, tmp_json)
-                    };
-
-                return allJsonResults;
+                allJsonResults.Add(AppOutp.OutputDetails_Field, detailsJson);
             }
             else
             {
-                JObject tmp_json = new JObject()
-                {
-                    "There is no table data."
-                };
-
-                JObject allJsonResults = new JObject()
-                    {
-                        new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
-                        new JProperty(AppOutp.OutputDetails_Field, tmp_json)
-                    };
-
-                return allJsonResults;
+                allJsonResults.Add(AppOutp.OutputDetails_Field, new JObject { "There is no table data." });
             }
-            
+
+            return allJsonResults;
         }
 
+        private static JArray ProcessTableItems(IQueryable<dynamic> items, string language, string nameProperty, string namePropertyTC)
+        {
+            JArray resultList = new JArray();
+            string skipProperty = language == "tc" ? nameProperty : namePropertyTC;
+
+            foreach (var item in items)
+            {
+                JObject tempJson = new JObject();
+
+                foreach (var property in item.GetType().GetProperties())
+                {
+                    if (property.Name == "isValid" || property.Name == skipProperty) continue;
+
+                    string mappedName = GetPropertyName(property.Name, language);
+                    tempJson.Add(new JProperty(mappedName, property.GetValue(item)));
+                }
+
+                resultList.Add(tempJson);
+            }
+
+            return resultList;
+        }
+
+        private static string GetPropertyName(string propertyName, string language)
+        {
+            return language == "tc" && propertyName.EndsWith("_TC") ? propertyName.Substring(0, propertyName.Length - 3) : propertyName;
+        }
 
 
 
