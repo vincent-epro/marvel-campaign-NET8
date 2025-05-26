@@ -136,127 +136,104 @@ namespace marvel_campaign_NET8.Controllers
 
         private JObject SaveCRM_CallHistory(JsonObject data)
         {
-            // obtain form body values
-            int connId = Convert.ToInt32((data["Conn_Id"] ?? "-1").ToString());
-            string callType = (data["Call_Type"] ?? "").ToString();
-            int updatedBy = Convert.ToInt32((data["Updated_By"] ?? "-1").ToString());
-            int internalCaseNo = Convert.ToInt32((data["Internal_Case_No"] ?? "-1").ToString());
-            string isSaved = (data["Is_Saved"] ?? "").ToString();
-            int conferenceConnId = Convert.ToInt32((data["Conference_Conn_Id"] ?? "-1").ToString());
-            string replyType = (data["Reply_Type"] ?? "").ToString();
-            string replyDetails = (data["Reply_Details"] ?? "").ToString();
-            string typeDetails = (data["Type_Details"] ?? "").ToString();
-            int replyConnId = Convert.ToInt32((data["Reply_Conn_Id"] ?? "-1").ToString());
-            string ivrInfo = (data["IVR_Info"] ?? "").ToString();
+            var callData = new CallHistoryData(data);
+            var result = new JObject();
+            string connectionType = string.Empty;
 
-            //JObject allJsonResults = new JObject(); // declare json object
+            var callHistory = _scrme.call_histories.SingleOrDefault(h => h.Conn_Id == callData.ConnId);
 
-            string connectionType = string.Empty; // declare connection type
-
-            // obtain the row of data with the given conn_id
-            call_history? _call_history_item = (from _h in _scrme.call_histories
-                                                         where _h.Conn_Id == connId
-                                                         select _h).SingleOrDefault();
-
-            if (_call_history_item == null)
+            if (callHistory == null)
             {
-                call_history _inserted_call_history = new call_history();
-                // insert new record with the connId
-                _inserted_call_history.Conn_Id = connId;
-                _inserted_call_history.Call_Type = callType;
-                _inserted_call_history.Updated_By = updatedBy;
-                _inserted_call_history.Updated_Time = DateTime.Now;
-                _inserted_call_history.Reply_Type = replyType;
-                _inserted_call_history.Reply_Details = replyDetails;
-                _inserted_call_history.Type_Details = typeDetails;
-                _inserted_call_history.IVR_Info = ivrInfo;
-
-                if (internalCaseNo != -1)
-                {
-                    _inserted_call_history.Internal_Case_No = internalCaseNo;
-                }
-
-                if (isSaved != string.Empty)
-                {
-                    _inserted_call_history.Is_Saved = isSaved;
-                }
-                else
-                {
-                    _inserted_call_history.Is_Saved = "N";
-                }
-
-                if (conferenceConnId != -1)
-                {
-                    _inserted_call_history.Conference_Conn_Id = conferenceConnId;
-                }
-
-                if (replyConnId != -1)
-                {
-                    _inserted_call_history.Reply_Conn_Id = replyConnId;
-                }
-
-                // add new call history record
-                _scrme.call_histories.Add(_inserted_call_history);
-
-                // save db changes
-                _scrme.SaveChanges();
-
+                _scrme.call_histories.Add(CreateNewCallHistory(callData));
                 connectionType = "catching a connection";
+            }
+            else if (callHistory.Is_Saved != "Y")
+            {
+                UpdateCallHistory(callHistory, callData);
+
+                if (callData.InternalCaseNo != -1)
+                {
+                    connectionType = "opening an input form or creating a new reply connection";
+                }
+                
+                if (!string.IsNullOrEmpty(callData.IsSaved))
+                {
+                    connectionType = "the save button is clicked. the call may be made twice if the reply connection is created in earlier time";
+                }
+
             }
             else
             {
-                // update record when Is_Saved != "Y" in the table
-                if (_call_history_item.Is_Saved != "Y")
-                {
-                    if (internalCaseNo != -1)
-                    {
-                        _call_history_item.Internal_Case_No = internalCaseNo;
-                        connectionType = "opening an input form or creating a new reply connection";
-                    }
-
-                    if (isSaved != string.Empty)
-                    {
-                        _call_history_item.Is_Saved = isSaved;
-                        connectionType = "the save button is clicked. the call may be made twice if the reply connection is created in earlier time";
-                    }
-                    else
-                    {
-                        _call_history_item.Is_Saved = "N";
-                    }
-
-                    if (conferenceConnId != -1)
-                    {
-                        _call_history_item.Conference_Conn_Id = conferenceConnId;
-                    }
-
-                    if (replyConnId != -1)
-                    {
-                        _call_history_item.Reply_Conn_Id = replyConnId;
-                    }
-
-
-                    _call_history_item.Reply_Type = replyType;
-                    _call_history_item.Reply_Details = replyDetails;
-
-                    _call_history_item.Updated_By = updatedBy;
-                    _call_history_item.Updated_Time = DateTime.Now;
-
-
-                    _scrme.SaveChanges();
-                }
-                else
-                {
-                    connectionType = "Is_Saved is already Y, so there is no need to update this record (by Conn_Id) in this table anymore";
-                }
+                connectionType = "Is_Saved is already Y, so there is no need to update this record (by Conn_Id) in this table anymore";
             }
 
-            JObject allJsonResults = new JObject()
+            _scrme.SaveChanges();
+
+            result.Add(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC);
+            result.Add(AppOutp.OutputDetails_Field, connectionType);
+            return result;
+        }
+
+        private sealed class CallHistoryData
+        {
+            public int ConnId { get; }
+            public string CallType { get; }
+            public int UpdatedBy { get; }
+            public int InternalCaseNo { get; }
+            public string IsSaved { get; }
+            public int ConferenceConnId { get; }
+            public string ReplyType { get; }
+            public string ReplyDetails { get; }
+            public string TypeDetails { get; }
+            public int ReplyConnId { get; }
+            public string IvrInfo { get; }
+
+            public CallHistoryData(JsonObject data)
             {
-                new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
-                new JProperty(AppOutp.OutputDetails_Field, connectionType)
+                ConnId = Convert.ToInt32((data["Conn_Id"] ?? "-1").ToString());
+                CallType = (data["Call_Type"] ?? "").ToString();
+                UpdatedBy = Convert.ToInt32((data["Updated_By"] ?? "-1").ToString());
+                InternalCaseNo = Convert.ToInt32((data["Internal_Case_No"] ?? "-1").ToString());
+                IsSaved = (data["Is_Saved"] ?? "").ToString();
+                ConferenceConnId = Convert.ToInt32((data["Conference_Conn_Id"] ?? "-1").ToString());
+                ReplyType = (data["Reply_Type"] ?? "").ToString();
+                ReplyDetails = (data["Reply_Details"] ?? "").ToString();
+                TypeDetails = (data["Type_Details"] ?? "").ToString();
+                ReplyConnId = Convert.ToInt32((data["Reply_Conn_Id"] ?? "-1").ToString());
+                IvrInfo = (data["IVR_Info"] ?? "").ToString();
+            }
+        }
+
+        private static call_history CreateNewCallHistory(CallHistoryData data)
+        {
+            var callHistory = new call_history
+            {
+                Conn_Id = data.ConnId,
+                Call_Type = data.CallType,
+                Updated_By = data.UpdatedBy,
+                Updated_Time = DateTime.Now,
+                Reply_Type = data.ReplyType,
+                Reply_Details = data.ReplyDetails,
+                Type_Details = data.TypeDetails,
+                IVR_Info = data.IvrInfo,
+                Is_Saved = string.IsNullOrEmpty(data.IsSaved) ? "N" : data.IsSaved,
+                Internal_Case_No = data.InternalCaseNo != -1 ? data.InternalCaseNo : null,
+                Conference_Conn_Id = data.ConferenceConnId != -1 ? data.ConferenceConnId : null,
+                Reply_Conn_Id = data.ReplyConnId != -1 ? data.ReplyConnId : null
             };
-            // return all results in json format
-            return allJsonResults;
+            return callHistory;
+        }
+
+        private static void UpdateCallHistory(call_history callHistory, CallHistoryData data)
+        {
+            callHistory.Reply_Type = data.ReplyType;
+            callHistory.Reply_Details = data.ReplyDetails;
+            callHistory.Updated_By = data.UpdatedBy;
+            callHistory.Updated_Time = DateTime.Now;
+            callHistory.Is_Saved = string.IsNullOrEmpty(data.IsSaved) ? "N" : data.IsSaved;
+            if (data.InternalCaseNo != -1) callHistory.Internal_Case_No = data.InternalCaseNo;
+            if (data.ConferenceConnId != -1) callHistory.Conference_Conn_Id = data.ConferenceConnId;
+            if (data.ReplyConnId != -1) callHistory.Reply_Conn_Id = data.ReplyConnId;
         }
 
 
