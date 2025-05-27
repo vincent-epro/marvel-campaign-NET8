@@ -49,76 +49,65 @@ namespace marvel_campaign_NET8.Controllers
         {
             int caseNo = Convert.ToInt32((data["Case_No"] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
-         //   DateTime scheduledTime = Convert.ToDateTime((data["Scheduled_Time"] ?? DateTime.MinValue).ToString()); //old
 
-            // declare a dictionary object where key = fieldName, value = fieldValue 
-            Dictionary<string, string> fieldsToBeAdded = new Dictionary<string, string>();
+            Dictionary<string, string> fieldsToBeAdded = ExtractFields(data);
 
-            // iterate through the form data and assign the field name and field value to dictionary
-            foreach (var item in data)
-            {
-                string fieldName = item.Key;
-                string fieldValue = item.Value?.ToString() ?? string.Empty;
+            var _reminder = _scrme.case_reminders.SingleOrDefault(_r => _r.Case_No == caseNo);
 
-                if (fieldName != "Case_No" && fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Scheduled_Time" && fieldName != "Token")
-                {
-                    fieldsToBeAdded.Add(fieldName, fieldValue); // add field items to dictionary
-                }
-            }
-
-            // obtain the call filter record based on the filter id
-            var _reminder = (from _r in _scrme.case_reminders
-                             where _r.Case_No == caseNo
-                             select _r).SingleOrDefault();
-
-            // call filter exists in table
             if (_reminder != null)
             {
-
-                // iterate through the dictionary and update the fields
-                foreach (var fields in fieldsToBeAdded)
-                {
-                    // find the column name that matches with the field name in dictionary
-                    PropertyInfo? properInfo = _reminder.GetType().GetProperty(fields.Key);
-                    if (!fieldsToBeAdded.ContainsKey("Scheduled_Time"))
-                    {
-                        properInfo?.SetValue(_reminder, (fields.Value == null ? string.Empty : fields.Value));
-                    }
-                }
-
-                if (data.ContainsKey("Scheduled_Time") && !string.IsNullOrEmpty(data["Scheduled_Time"]?.ToString()))
-                {
-                    _reminder.Scheduled_Time = Convert.ToDateTime((data["Scheduled_Time"] ?? "").ToString()); // set the time
-                }
-
-                _reminder.Created_By = agentId;
-                _reminder.Created_Time = DateTime.Now;
-
-
+                UpdateExistingReminder(_reminder, fieldsToBeAdded, data);
             }
             else
             {
-                // add a new row using the data above
-                // declare db table items
-                case_reminder _new_reminder_item = new case_reminder();
-
-                // assign new agent record
-                _new_reminder_item.Case_No = caseNo;
-
-                _new_reminder_item.Is_Read = "N";
-                _new_reminder_item.Remarks = fieldsToBeAdded["Remarks"];
-                _new_reminder_item.Scheduled_Time = Convert.ToDateTime((data["Scheduled_Time"] ?? "").ToString());
-                _new_reminder_item.Created_By = agentId;
-                _new_reminder_item.Created_Time = DateTime.Now;
-
-                // add the new row
-                _scrme.case_reminders.Add(_new_reminder_item);
+                AddNewReminder(caseNo, agentId, fieldsToBeAdded, data);
             }
 
-
-            _scrme.SaveChanges(); // save changes to db
-
+            _scrme.SaveChanges();
         }
+
+        private static Dictionary<string, string> ExtractFields(JsonObject data)
+        {
+            return data
+                .Where(item => item.Key != "Case_No" && item.Key != AppInp.InputAuth_Agent_Id && item.Key != AppInp.Input_Scheduled_Time && item.Key != "Token")
+                .ToDictionary(item => item.Key, item => item.Value?.ToString() ?? string.Empty);
+        }
+
+        private static void UpdateExistingReminder(case_reminder _reminder, Dictionary<string, string> fieldsToBeAdded, JsonObject data)
+        {
+            foreach (var fields in fieldsToBeAdded)
+            {
+                PropertyInfo? properInfo = _reminder.GetType().GetProperty(fields.Key);
+                if (!fieldsToBeAdded.ContainsKey(AppInp.Input_Scheduled_Time))
+                {
+                    properInfo?.SetValue(_reminder, fields.Value ?? string.Empty);
+                }
+            }
+
+            if (data.ContainsKey(AppInp.Input_Scheduled_Time) && !string.IsNullOrEmpty(data[AppInp.Input_Scheduled_Time]?.ToString()))
+            {
+                _reminder.Scheduled_Time = Convert.ToDateTime((data[AppInp.Input_Scheduled_Time] ?? "").ToString());
+            }
+
+            _reminder.Created_By = Convert.ToInt32(data[AppInp.InputAuth_Agent_Id]?.ToString() ?? "-1");
+            _reminder.Created_Time = DateTime.Now;
+        }
+
+        private void AddNewReminder(int caseNo, int agentId, Dictionary<string, string> fieldsToBeAdded, JsonObject data)
+        {
+            case_reminder _new_reminder_item = new case_reminder
+            {
+                Case_No = caseNo,
+                Is_Read = "N",
+                Remarks = fieldsToBeAdded["Remarks"],
+                Scheduled_Time = Convert.ToDateTime((data[AppInp.Input_Scheduled_Time] ?? "").ToString()),
+                Created_By = agentId,
+                Created_Time = DateTime.Now
+            };
+
+            _scrme.case_reminders.Add(_new_reminder_item);
+        }
+
 
 
         // Get Case Reminder

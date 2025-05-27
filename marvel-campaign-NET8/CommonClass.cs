@@ -10,6 +10,8 @@ namespace marvel_campaign_NET8
         public const string InputAuth_Token = "Token";
 
         public const string Input_Customer_Id = "Customer_Id";
+        public const string Input_Scheduled_Time = "Scheduled_Time";
+
 
     }
 
