@@ -339,71 +339,59 @@ namespace marvel_campaign_NET8.Controllers
             int pID = Convert.ToInt32((data["Sa_Id"] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
-            var _pro = (from _c in _scrme.ob_sales_orders
-                        where _c.Sa_Id == pID
-                        select _c).SingleOrDefault<ob_sales_order>();
+            var _pro = _scrme.ob_sales_orders.SingleOrDefault(_c => _c.Sa_Id == pID);
 
-            // if there is at least 1 
-            if (_pro != null)
+            if (_pro == null) return;
+
+            var fieldsToBeUpdatedDict = ExtractFieldsToUpdate(data);
+
+            ApplyFieldUpdates(_pro, fieldsToBeUpdatedDict);
+
+            _pro.Updated_By = agentId;
+            _pro.Updated_Time = DateTime.Now;
+
+            _scrme.SaveChanges();
+        }
+
+        private static Dictionary<string, dynamic> ExtractFieldsToUpdate(JsonObject data)
+        {
+            var fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
+
+            foreach (var item in data)
             {
-                Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
+                string fieldName = item.Key;
+                var fieldValue = item.Value?.ToString();
 
-                // iterate through the form data and assign the field name and field value to dictionary
-                foreach (var item in data)
-                {
+                if (fieldName == AppInp.InputAuth_Agent_Id || fieldName == "Token") continue;
 
-                    string fieldName = item.Key;
-                    var fieldValue = item.Value?.ToString() ?? null;
+                PropertyInfo? fieldProp = typeof(ob_sales_order).GetProperty(fieldName);
+                if (fieldProp == null) continue;
 
-                    //    var fieldType = item.Value?.GetValueKind(); //old
+                Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
 
-                    if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
-                    {
-                        PropertyInfo? fieldProp = new ob_sales_order().GetType().GetProperty(fieldName);
-                        Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
-                        string ftype = type.Name;
-
-                        if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
-                        {
-                            if (fieldValue != null)
-                            {
-                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
-                            }
-                            else
-                            {
-                                fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
-                            }
-                        }
-                        else
-                        {
-                            if (fieldValue != null)
-                            {
-                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
-                            }
-                            else
-                            {
-                                fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
-                            }
-                        }
-                    }
-
-                }
-
-                foreach (var fields in fieldsToBeUpdatedDict)
-                {
-                    // find the column name that matches with the field name in dictionary
-                    PropertyInfo? properInfo = _pro.GetType().GetProperty(fields.Key);
-                    properInfo?.SetValue(_pro, fields.Value);
-                }
-
-
-                _pro.Updated_By = agentId;
-                _pro.Updated_Time = DateTime.Now;
-
-                _scrme.SaveChanges();
-
+                fieldsToBeUpdatedDict[fieldName] = ConvertFieldValue(fieldValue, type);
             }
 
+            return fieldsToBeUpdatedDict;
+        }
+
+        private static dynamic ConvertFieldValue(string? fieldValue, Type type)
+        {
+            if (fieldValue == null)
+            {
+                return type.IsValueType ? Activator.CreateInstance(type) : null;
+            }
+
+            return Convert.ChangeType(fieldValue, type);
+        }
+
+        private static void ApplyFieldUpdates(ob_sales_order _pro, Dictionary<string, dynamic> fieldsToBeUpdatedDict)
+        {
+            foreach (var field in fieldsToBeUpdatedDict)
+            {
+                PropertyInfo? propInfo = _pro.GetType().GetProperty(field.Key);
+                propInfo?.SetValue(_pro, field.Value);
+            }
         }
 
 
