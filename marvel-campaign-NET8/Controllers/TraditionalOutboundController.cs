@@ -250,8 +250,8 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    string batchcode = (data["Batch_Code"] ?? "").ToString();
-                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+                    string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
                     if (batchcode == string.Empty || campaigncode == string.Empty)
                     {
@@ -279,8 +279,8 @@ namespace marvel_campaign_NET8.Controllers
 
         private void AddCRM_OBSalesOrder(JsonObject data)
         {
-            string batchcode = (data["Batch_Code"] ?? "").ToString();
-            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+            string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+            string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             int callId = Convert.ToInt32((data["Call_Id"] ?? "-1").ToString());
@@ -547,8 +547,8 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    string batchcode = (data["Batch_Code"] ?? "").ToString();
-                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+                    string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
                     if (batchcode == string.Empty || campaigncode == string.Empty)
                     {
@@ -582,8 +582,8 @@ namespace marvel_campaign_NET8.Controllers
             // declare a json object to contain all rows of data
             // JObject allJsonResults = new JObject(); //
 
-            string batchcode = (data["Batch_Code"] ?? "").ToString();
-            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+            string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+            string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
             int agent_id = Convert.ToInt32((data["To_Check_Id"] ?? "-1").ToString());
 
@@ -839,8 +839,8 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    string batchcode = (data["Batch_Code"] ?? "").ToString();
-                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+                    string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
                     int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
 
                     if (batchcode == string.Empty || campaigncode == string.Empty || assign_from == -1)
@@ -878,8 +878,8 @@ namespace marvel_campaign_NET8.Controllers
 
         private IQueryable<ob_result> GetCRM_OBBatchLead([FromBody] dynamic data)
         {
-            string batchcode = (data["Batch_Code"] ?? "").ToString();
-            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+            string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+            string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
             int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
 
@@ -947,8 +947,8 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    string batchcode = (data["Batch_Code"] ?? "").ToString();
-                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+                    string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
                     int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
 
                     if (batchcode == string.Empty || campaigncode == string.Empty || assign_from == -1)
@@ -1054,7 +1054,7 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
                     List<ob_header_mapping> _list_form = GetCRM_OBCampaignHeader(campaigncode);
 
@@ -1129,7 +1129,7 @@ namespace marvel_campaign_NET8.Controllers
 
         private int AddCRM_OBCampaign(JsonObject data)
         {
-            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+            string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
             var _cp = (from _c in _scrme.ob_campaigns
                        where _c.Campaign_Status == AppOutp.STATUS_Active && _c.Campaign_Code == campaigncode
@@ -1208,7 +1208,7 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (s_action == "Amend")
                 {
-                    _cs.Campaign_Code = (data["Campaign_Code"] ?? "").ToString();
+                    _cs.Campaign_Code = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
                     _cs.Form_Id = Convert.ToInt32((data["Form_Id"] ?? "-1").ToString());
                     _cs.Form_Name = (data["Form_Name"] ?? "").ToString();
                     _cs.Campaign_Description = (data["Campaign_Description"] ?? "").ToString();
@@ -1261,7 +1261,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
             int campaignId = Convert.ToInt32((data["Campaign_Id"] ?? "-1").ToString());
-            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+            string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
             var _ch = (from _c in _scrme.ob_header_mappings
                        where _c.Campaign_Code == campaigncode
@@ -1344,7 +1344,7 @@ namespace marvel_campaign_NET8.Controllers
             // Ensure worksheet name doesn't end with "$"
             string worksheet = (data["WorkSheet"] ?? "").ToString().TrimEnd('$');
 
-            string campaignCode = (data["Campaign_Code"] ?? "").ToString();
+            string campaignCode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
             // Validate header count
             int expectedHeaderCount = await _scrme.ob_header_mappings
@@ -1359,10 +1359,10 @@ namespace marvel_campaign_NET8.Controllers
             }
 
             // Add Campaign_Code column
-            excelData.Columns.Add("Campaign_Code", typeof(string));
+            excelData.Columns.Add(AppInp.Input_Campaign_Code, typeof(string));
             foreach (DataRow row in excelData.Rows)
             {
-                row["Campaign_Code"] = campaignCode;
+                row[AppInp.Input_Campaign_Code] = campaignCode;
             }
 
             // Delete existing temp data
@@ -1388,7 +1388,7 @@ namespace marvel_campaign_NET8.Controllers
             {
                 bulkCopy.ColumnMappings.Add(mapping.Excel_Field_Name, mapping.DB_Field_Name);
             }
-            bulkCopy.ColumnMappings.Add("Campaign_Code", "Campaign_Code");
+            bulkCopy.ColumnMappings.Add(AppInp.Input_Campaign_Code, AppInp.Input_Campaign_Code);
             await bulkCopy.WriteToServerAsync(excelData);
           
             await transaction.CommitAsync();
@@ -1530,8 +1530,8 @@ namespace marvel_campaign_NET8.Controllers
 
         private async Task<string> ConfirmCRM_upload_file(JsonObject data)
         {
-            string batchcode = (data["Batch_Code"] ?? "").ToString();
-            string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+            string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+            string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
             string b_start = (data["Batch_Start_Date"] ?? "").ToString();
             string b_end = (data["Batch_End_Date"] ?? "").ToString();
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());

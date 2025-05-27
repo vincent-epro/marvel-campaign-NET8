@@ -230,8 +230,8 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    string batchcode = (data["Batch_Code"] ?? "").ToString();
-                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+                    string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
                     if (batchcode == string.Empty || campaigncode == string.Empty)
                     {
@@ -272,8 +272,8 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    string batchcode = (data["Batch_Code"] ?? "").ToString();
-                    string campaigncode = (data["Campaign_Code"] ?? "").ToString();
+                    string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
+                    string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
                     if (batchcode == string.Empty || campaigncode == string.Empty)
                     {

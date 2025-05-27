@@ -11,6 +11,8 @@ namespace marvel_campaign_NET8
 
         public const string Input_Customer_Id = "Customer_Id";
         public const string Input_Scheduled_Time = "Scheduled_Time";
+        public const string Input_Campaign_Code = "Campaign_Code";
+        public const string Input_Batch_Code = "Batch_Code";
 
 
     }
