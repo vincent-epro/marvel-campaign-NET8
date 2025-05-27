@@ -573,257 +573,184 @@ namespace marvel_campaign_NET8.Controllers
             }
         }
 
-
         private JObject SearchCRM_OBCallList(JsonObject data)
         {
-            // declare a list of json objects containing the each row of data
-            List<JObject> _con_history_list = new List<JObject>();
+            var conditionList = GenerateConditions(data);
+            var whereClause = string.Join(" AND ", conditionList);
+            var filteredCustomers = FilterCustomerRecords(whereClause);
+            var sortedCustomers = SortCustomers(data, filteredCustomers);
+            var pagedCustomers = PaginateResults(data, sortedCustomers);
 
-            // declare a json object to contain all rows of data
-            // JObject allJsonResults = new JObject(); //
+            return GenerateFinalResult(data, pagedCustomers, sortedCustomers.Count());
+        }
 
-            string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
-            string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
-
-            int agent_id = Convert.ToInt32((data["To_Check_Id"] ?? "-1").ToString());
-
-            string phone = (data["Phone"] ?? "").ToString();
-            string name = (data["Name"] ?? "").ToString();
-            string gender = (data["Gender"] ?? "").ToString();
-
-            int age_from = Convert.ToInt32((data["Age_From"] ?? "-1").ToString());
-            int age_to = Convert.ToInt32((data["Age_To"] ?? "-1").ToString());
-
-            string call_status = (data["Call_Status"] ?? "").ToString();
-            string callback_time_from = (data["Callback_Time_From"] ?? "").ToString();
-            string callback_time_to = (data["Callback_Time_To"] ?? "").ToString();
-
-            string within_batchperiod = (data["Within_BatchPeriod"] ?? "").ToString();
-
-
-            List<string> conditionList = new List<string>();
-            string whereClause = string.Empty;
-
-            string statement = string.Empty;
-
-            //     statement = " c.Is_Valid == \"Y\""; //
-
-            //     conditionList.Add("(" + statement + ")"); //
-
-            statement = " r.Opt_Out == null || !r.Opt_Out.Equals(\"Y\")";
-
-            conditionList.Add("(" + statement + ")");
-
-            // Only search assigned call list
-            statement = " r.Agent_Id != null ";
-
-            conditionList.Add("(" + statement + ")");
-
-            if (batchcode != string.Empty)
+        // Generate search conditions
+        private static List<string> GenerateConditions(JsonObject data)
+        {
+            var conditions = new List<string>
             {
-                statement = " r.Batch_Code.Equals(\"" + batchcode + "\")";
-                conditionList.Add("(" + statement + ")");
-            }
-
-            if (campaigncode != string.Empty)
-            {
-                statement = " r.Campaign_Code.Equals(\"" + campaigncode + "\")";
-                conditionList.Add("(" + statement + ")");
-            }
-
-
-            if (agent_id != -1)
-            {
-                statement = " r.Agent_Id == " + agent_id;
-
-                conditionList.Add("(" + statement + ")");
-
-            }
-
-            if (phone != string.Empty)
-            {
-                statement = " r.Home_No.Contains(\"" + phone + "\")" + " || "
-                          + " r.Office_No.Contains(\"" + phone + "\")" + " || "
-                          + " r.Mobile_No.Contains(\"" + phone + "\")" + " || "
-                          + " r.Other_Phone_No.Contains(\"" + phone + "\")";
-
-                conditionList.Add("(" + statement + ")");
-            }
-
-            if (name != string.Empty)
-            {
-                statement = " r.First_Name.Contains(\"" + name + "\")" + " || "
-                          + " r.Last_Name.Contains(\"" + name + "\")";
-
-                conditionList.Add("(" + statement + ")");
-            }
-
-            if (gender != string.Empty)
-            {
-                statement = " r.Gender.Equals(\"" + gender + "\")";
-
-                conditionList.Add("(" + statement + ")");
-            }
-
-            if (age_from != -1 && age_to != -1)
-            {
-                DateTime today = DateTime.Today;
-                DateTime min = today.AddYears(-(age_to + 1));
-                DateTime max = today.AddYears(-age_from);
-
-                int min_year = min.Year;
-                int min_month = min.Month;
-                int min_day = min.Day;
-
-                int max_year = max.Year;
-                int max_month = max.Month;
-                int max_day = max.Day;
-
-                statement = " r.DOB != null" + " && "
-                          + " r.DOB > " + "DateTime(" + min_year + "," + min_month + "," + min_day + ",0,0,0)" + " && "
-                          + " r.DOB <= " + "DateTime(" + max_year + "," + max_month + "," + max_day + ",0,0,0)";
-
-                conditionList.Add("(" + statement + ")");
-
-            }
-
-            if (call_status != string.Empty)
-            {
-                if (call_status == "NewLead")
-                    statement = " r.Attempt == 0";
-                else
-                    statement = " r.Call_Status.Equals(\"" + call_status + "\")";
-
-                conditionList.Add("(" + statement + ")");
-            }
-
-
-
-            if (callback_time_from != string.Empty && callback_time_to != string.Empty)
-            {
-                double s_min = TimeSpan.ParseExact(callback_time_from, @"hh\:mm", CultureInfo.InvariantCulture).TotalMinutes;
-                double e_min = TimeSpan.ParseExact(callback_time_to, @"hh\:mm", CultureInfo.InvariantCulture).TotalMinutes;
-
-                statement = "r.Callback_Time.HasValue "
-                          + " && ((r.Callback_Time.Value.Hour * 60) + r.Callback_Time.Value.Minute) >= " + s_min
-                          + " && ((r.Callback_Time.Value.Hour * 60) + r.Callback_Time.Value.Minute) <= " + e_min;
-
-
-                conditionList.Add("(" + statement + ")");
-
-            }
-
-
-            if (within_batchperiod == "Y")
-            {
-                statement = " b.Batch_Start_Date != null && b.Batch_End_Date != null "
-                            + " && DateTime.Now >= b.Batch_Start_Date "
-                            + " && DateTime.Now.Date <= b.Batch_End_Date";
-
-                conditionList.Add("(" + statement + ")");
-            }
-
-
-            whereClause = string.Join(" AND ", conditionList.ToArray());
-
-
-            var _return_customer = (from r in _scrme.ob_results
-                                    join b in _scrme.ob_batches on new { r.Campaign_Code, r.Batch_Code } equals new { b.Campaign_Code, b.Batch_Code }
-                                    select new { r, b }
-                   ).Where(whereClause);
-
-
-            int draw = Convert.ToInt32((data["draw"] ?? "-1").ToString());
-
-            var start = (data["start"] ?? "").ToString();
-            var length = (data["length"] ?? "").ToString();
-
-
-            int col_index = data["order"]?[0]?["column"]?.GetValue<int>() ?? -1;
-
-            string sortColumn = data["columns"]?[col_index]?["data"]?.GetValue<string>() ?? string.Empty;
-
-            var sortColumnDir = data["order"]?[0]?["dir"]?.GetValue<string>() ?? "asc";
-
-            int pageSize = length != null ? Convert.ToInt32(length) : 0;
-            int skip = start != null ? Convert.ToInt32(start) : 0;
-            int recordsTotal = 0;
-
-
-            //Sorting    
-            if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
-            {
-                string final_ordering;
-
-                bool isDesc;
-
-                if (sortColumnDir == "desc")
-                    isDesc = true;
-                else
-                    isDesc = false;
-
-                string sortColumn_list;
-
-                sortColumn_list = "r.";
-
-
-                final_ordering = sortColumn_list + sortColumn + (isDesc ? " descending" : "");
-
-
-                // Sorting 2nd
-                if (data["order"]?.AsArray()?.Count > 1)
-                {
-                    int col_index2 = data["order"]?[1]?["column"]?.GetValue<int>() ?? -1;
-                    string sortColumn2 = data["columns"]?[col_index2]?["data"]?.GetValue<string>() ?? string.Empty;
-                    string sortColumnDir2 = data["order"]?[1]?["dir"]?.GetValue<string>() ?? "asc";
-
-                    string sortColumn_list2 = "r.";
-
-                    final_ordering += $", {sortColumn_list2}{sortColumn2} {(sortColumnDir2 == "desc" ? "descending" : "")}";
-                }
-
-                _return_customer = _return_customer.OrderBy(final_ordering);
-            }
-
-
-            //total number of rows count     
-            recordsTotal = _return_customer.Count();
-            //Paging     
-            var data2 = _return_customer.Skip(skip).Take(pageSize).ToList();
-
-
-            // assign results' row values to the jsonResultList JSON object
-            foreach (var _result_item in data2)
-            {
-                // declare a temp json object to store each _result_item
-                JObject tempJson = new JObject();
-
-                //  tempJson.RemoveAll(); // clear the temp object
-
-
-                foreach (PropertyInfo property in _result_item.r.GetType().GetProperties())
-                {
-                    // add only the following column names and values to temp
-
-                    tempJson.Add(new JProperty(property.Name, property.GetValue(_result_item.r)));
-
-                }
-                _con_history_list.Add(tempJson); // add the temp result to the list
-            }
-
-            // set up _all_results json data
-            JObject allJsonResults = new JObject()
-            {
-                new JProperty(AppOutp.OutputResult_Field, "success"),
-                new JProperty("draw", draw),
-                new JProperty("recordsFiltered", recordsTotal),
-                new JProperty("recordsTotal", recordsTotal),
-                new JProperty(AppOutp.OutputDetails_Field, _con_history_list)
+                "(r.Opt_Out == null || !r.Opt_Out.Equals(\"Y\"))",
+                "(r.Agent_Id != null)"
             };
 
-            // return all results in json format
-            return allJsonResults;
+            AddCondition(conditions, "r.Batch_Code.Equals", data[AppInp.Input_Batch_Code]);
+            AddCondition(conditions, "r.Campaign_Code.Equals", data[AppInp.Input_Campaign_Code]);
+            AddCondition(conditions, "r.Agent_Id == ", data["To_Check_Id"], true);
+            AddCondition(conditions, "r.Gender.Equals", data["Gender"]);
+            AddAgeCondition(conditions, data["Age_From"], data["Age_To"]);
+            AddPhoneCondition(conditions, data["Phone"]);
+            AddNameCondition(conditions, data["Name"]);
+            AddCallStatusCondition(conditions, data["Call_Status"]);
+            AddCallbackCondition(conditions, data["Callback_Time_From"], data["Callback_Time_To"]);
+            AddBatchPeriodCondition(conditions, data["Within_BatchPeriod"]);
 
+            return conditions;
+        }
+
+        // Add simple conditions
+        private static void AddCondition(List<string> conditions, string format, object value, bool isInt = false)
+        {
+            var val = (value ?? "").ToString();
+            if (!string.IsNullOrEmpty(val) && (!isInt || Convert.ToInt32(val) != -1))
+            {
+                conditions.Add($"({format}(\"{val}\"))");
+            }
+        }
+
+        // Add age-based conditions
+        private static void AddAgeCondition(List<string> conditions, object ageFrom, object ageTo)
+        {
+            int ageFromInt = Convert.ToInt32((ageFrom ?? "-1").ToString());
+            int ageToInt = Convert.ToInt32((ageTo ?? "-1").ToString());
+
+            if (ageFromInt != -1 && ageToInt != -1)
+            {
+                DateTime today = DateTime.Today;
+                DateTime min = today.AddYears(-(ageToInt + 1));
+                DateTime max = today.AddYears(-ageFromInt);
+
+                conditions.Add($"(r.DOB != null && r.DOB > DateTime({min.Year},{min.Month},{min.Day},0,0,0) && r.DOB <= DateTime({max.Year},{max.Month},{max.Day},0,0,0))");
+            }
+        }
+
+        // Add phone number conditions
+        private static void AddPhoneCondition(List<string> conditions, object phone)
+        {
+            var phoneValue = (phone ?? "").ToString();
+            if (!string.IsNullOrEmpty(phoneValue))
+            {
+                conditions.Add($"(r.Home_No.Contains(\"{phoneValue}\") || r.Office_No.Contains(\"{phoneValue}\") || r.Mobile_No.Contains(\"{phoneValue}\") || r.Other_Phone_No.Contains(\"{phoneValue}\"))");
+            }
+        }
+
+        // Add name conditions
+        private static void AddNameCondition(List<string> conditions, object name)
+        {
+            var nameValue = (name ?? "").ToString();
+            if (!string.IsNullOrEmpty(nameValue))
+            {
+                conditions.Add($"(r.First_Name.Contains(\"{nameValue}\") || r.Last_Name.Contains(\"{nameValue}\"))");
+            }
+        }
+
+        // Add call status conditions
+        private static void AddCallStatusCondition(List<string> conditions, object callStatus)
+        {
+            var statusValue = (callStatus ?? "").ToString();
+            if (!string.IsNullOrEmpty(statusValue))
+            {
+                conditions.Add(statusValue == "NewLead" ? "(r.Attempt == 0)" : $"(r.Call_Status.Equals(\"{statusValue}\"))");
+            }
+        }
+
+        // Add callback time conditions
+        private static void AddCallbackCondition(List<string> conditions, object callbackFrom, object callbackTo)
+        {
+            var callbackStart = (callbackFrom ?? "").ToString();
+            var callbackEnd = (callbackTo ?? "").ToString();
+            if (!string.IsNullOrEmpty(callbackStart) && !string.IsNullOrEmpty(callbackEnd))
+            {
+                double s_min = TimeSpan.ParseExact(callbackStart, @"hh\:mm", CultureInfo.InvariantCulture).TotalMinutes;
+                double e_min = TimeSpan.ParseExact(callbackEnd, @"hh\:mm", CultureInfo.InvariantCulture).TotalMinutes;
+                conditions.Add($"(r.Callback_Time.HasValue && ((r.Callback_Time.Value.Hour * 60) + r.Callback_Time.Value.Minute) >= {s_min} && ((r.Callback_Time.Value.Hour * 60) + r.Callback_Time.Value.Minute) <= {e_min})");
+            }
+        }
+
+        // Add batch period conditions
+        private static void AddBatchPeriodCondition(List<string> conditions, object batchPeriod)
+        {
+            if ((batchPeriod ?? "").ToString() == "Y")
+            {
+                conditions.Add("(b.Batch_Start_Date != null && b.Batch_End_Date != null && DateTime.Now >= b.Batch_Start_Date && DateTime.Now.Date <= b.Batch_End_Date)");
+            }
+        }
+
+        // Filter customer records
+        private IQueryable<dynamic> FilterCustomerRecords(string whereClause)
+        {
+            return _scrme.ob_results.Join(_scrme.ob_batches, r => new { r.Campaign_Code, r.Batch_Code },
+                                          b => new { b.Campaign_Code, b.Batch_Code },
+                                          (r, b) => new { r, b }).Where(whereClause);
+        }
+
+        // Sort customer records
+        private static IQueryable<dynamic> SortCustomers(JsonObject data, IQueryable<dynamic> customers)
+        {
+            int colIndex = data["order"]?[0]?["column"]?.GetValue<int>() ?? -1;
+            string sortColumn = data["columns"]?[colIndex]?["data"]?.GetValue<string>() ?? string.Empty;
+            string sortColumnDir = data["order"]?[0]?["dir"]?.GetValue<string>() ?? "asc";
+
+            if (!string.IsNullOrEmpty(sortColumn))
+            {
+                string ordering = $"r.{sortColumn} {(sortColumnDir == "desc" ? "descending" : "ascending")}";
+
+                if (data["order"]?.AsArray()?.Count > 1)
+                {
+                    int colIndex2 = data["order"]?[1]?["column"]?.GetValue<int>() ?? -1;
+                    string sortColumn2 = data["columns"]?[colIndex2]?["data"]?.GetValue<string>() ?? string.Empty;
+                    string sortColumnDir2 = data["order"]?[1]?["dir"]?.GetValue<string>() ?? "asc";
+
+                    if (!string.IsNullOrEmpty(sortColumn2))
+                    {
+                        ordering += $", r.{sortColumn2} {(sortColumnDir2 == "desc" ? "descending" : "ascending")}";
+                    }
+                }
+
+                customers = customers.OrderBy(ordering);
+            }
+
+            return customers;
+        }
+
+        // Paginate results
+        private static List<dynamic> PaginateResults(JsonObject data, IQueryable<dynamic> customers)
+        {
+            int pageSize = Convert.ToInt32((data["length"] ?? "0").ToString());
+            int skip = Convert.ToInt32((data["start"] ?? "0").ToString());
+            return customers.Skip(skip).Take(pageSize).ToList();
+        }
+
+        // Generate final JSON result
+        private static JObject GenerateFinalResult(JsonObject data, List<dynamic> customers, int totalRecords)
+        {
+            var conHistoryList = customers.Select(c =>
+            {
+                JObject obj = new JObject();
+                foreach (var property in c.r.GetType().GetProperties())
+                {
+                    obj.Add(new JProperty(property.Name, property.GetValue(c.r)));
+                }
+                return obj;
+            }).ToList();
+
+            return new JObject
+            {
+                new JProperty(AppOutp.OutputResult_Field, "success"),
+                new JProperty("draw", Convert.ToInt32((data["draw"] ?? "-1").ToString())),
+                new JProperty("recordsFiltered", totalRecords),
+                new JProperty("recordsTotal", totalRecords),
+                new JProperty(AppOutp.OutputDetails_Field, conHistoryList)
+            };
         }
 
 
