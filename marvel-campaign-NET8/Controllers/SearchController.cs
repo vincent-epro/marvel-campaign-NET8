@@ -53,7 +53,7 @@ namespace marvel_campaign_NET8.Controllers
             string anyAll = (data["anyAll"] ?? "").ToString();
             JsonArray searchArray = (JsonArray?)data["searchArr"] ?? new JsonArray();
             string isCurrent = (data["Is_Current"] ?? "").ToString();
-            string IsValid = (data["Is_Valid"] ?? "all").ToString();
+            string IsValid = (data[AppInp.Input_Is_Valid] ?? "all").ToString();
             string countOnly = (data["Count_Only"] ?? "").ToString();
             var query_r = _scrme.case_results.Select(r => r);
             var query_rl = _scrme.case_result_logs.Select(r => r);
@@ -130,7 +130,7 @@ namespace marvel_campaign_NET8.Controllers
                     caseJson.Property("Created_Time")?.Replace(new JProperty("Case_Created_Time", caseJson.Property("Created_Time")?.Value));
                     caseJson.Property("Updated_By")?.Replace(new JProperty("Case_Updated_By", caseJson.Property("Updated_By")?.Value));
                     caseJson.Property("Updated_Time")?.Replace(new JProperty("Case_Updated_Time", caseJson.Property("Updated_Time")?.Value));
-                    caseJson.Property("Is_Valid")?.Replace(new JProperty("Case_Is_Valid", caseJson.Property("Is_Valid")?.Value));
+                    caseJson.Property(AppInp.Input_Is_Valid)?.Replace(new JProperty("Case_Is_Valid", caseJson.Property(AppInp.Input_Is_Valid)?.Value));
                     tempJson.Merge(caseJson);
 
                     jsonResultList.Add(tempJson); // add the temp result to the list    
@@ -148,10 +148,10 @@ namespace marvel_campaign_NET8.Controllers
         private static void SetCaseCondition(JsonNode? searchObj, ref List<object> params_a, ref string cond_a)
         {
             string list_name = (searchObj["list_name"] ?? "").ToString();
-            string field_name = (searchObj["field_name"] ?? "").ToString();
-            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
+            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
+            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
             string field_type = (searchObj["field_type"] ?? "").ToString();
-            string field_value = searchObj["value"].ToString();
+            string field_value = searchObj[AppInp.Input_SearchArr_value].ToString();
 
             switch (field_name)
             {
@@ -286,7 +286,7 @@ namespace marvel_campaign_NET8.Controllers
         {
             string anyAll = (data["anyAll"] ?? "all").ToString();
             JsonArray searchArray = (JsonArray?)data["searchArr"] ?? new JsonArray();
-            string IsValid = (data["Is_Valid"] ?? "all").ToString();
+            string IsValid = (data[AppInp.Input_Is_Valid] ?? "all").ToString();
             string takeAll = (data["Take_All"] ?? "").ToString();
 
             var query_c = _scrme.contact_lists.Select(r => r);
@@ -343,10 +343,10 @@ namespace marvel_campaign_NET8.Controllers
 
         private static void SetCustomerCondition(JsonNode? searchObj, ref List<object> params_a, ref string cond_a)
         {
-            string field_name = (searchObj["field_name"] ?? "").ToString();
-            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
+            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
+            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
             string field_type = (searchObj["field_type"] ?? "").ToString();
-            string field_value = searchObj["value"].ToString();
+            string field_value = searchObj[AppInp.Input_SearchArr_value].ToString();
 
             switch (field_name)
             {
@@ -417,9 +417,9 @@ namespace marvel_campaign_NET8.Controllers
             ref List<object> params_a, ref string cond_a)
         {
             if (!string.IsNullOrEmpty(alias)) alias += ".";
-            string field_name = (searchObj["field_name"] ?? "").ToString();
-            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
-            string field_value = (searchObj["value"] ?? "").ToString();
+            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
+            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
+            string field_value = (searchObj[AppInp.Input_SearchArr_value] ?? "").ToString();
 
             DateTime _d1 = Convert.ToDateTime(field_value);
             DateTime _d2 = _d1.AddDays(1);
@@ -458,9 +458,9 @@ namespace marvel_campaign_NET8.Controllers
             ref List<object> params_a, ref string cond_a)
         {
             if (!string.IsNullOrEmpty(alias)) alias += ".";
-            string field_name = (searchObj["field_name"] ?? "").ToString();
-            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
-            string field_value = (searchObj["value"] ?? "").ToString();
+            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
+            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
+            string field_value = (searchObj[AppInp.Input_SearchArr_value] ?? "").ToString();
             switch (logic_operator)
             {
                 case "is" or "=":
@@ -485,10 +485,10 @@ namespace marvel_campaign_NET8.Controllers
             ref List<object> params_a, ref string cond_a)
         {
             if (!string.IsNullOrEmpty(alias)) alias += ".";
-            string field_name = (searchObj["field_name"] ?? "").ToString();
-            string logic_operator = (searchObj["logic_operator"] ?? "").ToString();
+            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
+            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
             string field_type = (searchObj["field_type"] ?? "").ToString();
-            string field_value = (searchObj["value"] ?? "").ToString();
+            string field_value = (searchObj[AppInp.Input_SearchArr_value] ?? "").ToString();
 
             switch (logic_operator)
             {

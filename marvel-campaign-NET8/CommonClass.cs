@@ -17,6 +17,11 @@ namespace marvel_campaign_NET8
         public const string Input_Batch_Id = "Batch_Id";
         public const string Input_Assign_From = "Assign_From";
         public const string Input_Gender = "Gender";
+        public const string Input_Is_Valid = "Is_Valid";
+
+        public const string Input_SearchArr_field_name = "field_name";
+        public const string Input_SearchArr_logic_operator = "logic_operator";
+        public const string Input_SearchArr_value = "value";
 
         public const string Input_datatable_order = "order";
 
