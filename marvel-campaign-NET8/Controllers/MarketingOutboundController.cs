@@ -649,77 +649,51 @@ namespace marvel_campaign_NET8.Controllers
             }
         }
 
-
         private void UpdateCRM_OutboundBatch(JsonObject data)
         {
             int pID = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
-            var _pro = (from _c in _scrme.outbound_batches
-                        where _c.Batch_Id == pID // && _c.Channel_SMS == "Y"
-                        select _c).SingleOrDefault<outbound_batch>();
+            var _pro = _scrme.outbound_batches.FirstOrDefault(c => c.Batch_Id == pID);
+            if (_pro == null) return;
 
-            // if there is at least 1 
-            if (_pro != null)
+            var fieldsToBeUpdatedDict = BuildFields_forbBatch(data);
+
+            foreach (var field in fieldsToBeUpdatedDict)
             {
-                Dictionary<string, dynamic> fieldsToBeUpdatedDict = new Dictionary<string, dynamic>();
-
-                // iterate through the form data and assign the field name and field value to dictionary
-                foreach (var item in data)
-                {
-
-                    string fieldName = item.Key;
-                    var fieldValue = item.Value?.ToString() ?? null;
-
-                    //    var fieldType = item.Value?.GetValueKind(); //old
-
-                    if (fieldName != AppInp.InputAuth_Agent_Id && fieldName != "Token")
-                    {
-                        PropertyInfo? fieldProp = new outbound_batch().GetType().GetProperty(fieldName);
-                        Type type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
-                        string ftype = type.Name;
-
-                        if (ftype == "Int16" || ftype == "Int32" || ftype == "Int64" || ftype == "DateTime" || ftype == "Boolean")
-                        {
-                            if (fieldValue != null)
-                            {
-                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ChangeType(fieldValue, type)); // add field items to dictionary
-                            }
-                            else
-                            {
-                                fieldsToBeUpdatedDict.Add(fieldName, null); // add field items to dictionary
-                            }
-                        }
-                        else
-                        {
-                            if (fieldValue != null)
-                            {
-                                fieldsToBeUpdatedDict.Add(fieldName, Convert.ToString(fieldValue)); // add field items to dictionary
-                            }
-                            else
-                            {
-                                fieldsToBeUpdatedDict.Add(fieldName, string.Empty); // add field items to dictionary
-                            }
-                        }
-                    }
-
-                }
-
-                foreach (var fields in fieldsToBeUpdatedDict)
-                {
-                    // find the column name that matches with the field name in dictionary
-                    PropertyInfo? properInfo = _pro.GetType().GetProperty(fields.Key);
-                    properInfo?.SetValue(_pro, fields.Value);
-                }
-
-
-                _pro.Updated_By = agentId;
-                _pro.Updated_Time = DateTime.Now;
-
-                _scrme.SaveChanges();
-                
+                _pro.GetType().GetProperty(field.Key)?.SetValue(_pro, field.Value);
             }
 
+            _pro.Updated_By = agentId;
+            _pro.Updated_Time = DateTime.Now;
+
+            _scrme.SaveChanges();
+        }
+
+        private static Dictionary<string, dynamic> BuildFields_forbBatch(JsonObject data)
+        {
+            var dict = new Dictionary<string, dynamic>();
+            var obResultType = typeof(outbound_batch);
+
+            foreach (var item in data)
+            {
+                string fieldName = item.Key;
+                if (fieldName is AppInp.InputAuth_Agent_Id or "Token") continue;
+
+                var fieldValue = item.Value?.ToString();
+                var fieldProp = obResultType.GetProperty(fieldName);
+                if (fieldProp == null) continue;
+
+                var type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
+                dict[fieldName] = type.Name switch
+                {
+                    "Int16" or "Int32" or "Int64" or "DateTime" or "Boolean" =>
+                        fieldValue != null ? Convert.ChangeType(fieldValue, type) : null,
+                    _ => fieldValue ?? string.Empty
+                };
+            }
+
+            return dict;
         }
 
 
