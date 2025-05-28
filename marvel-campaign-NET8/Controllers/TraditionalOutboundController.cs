@@ -166,7 +166,7 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    int callId = Convert.ToInt32((data["Call_Id"] ?? "-1").ToString());
+                    int callId = Convert.ToInt32((data[AppInp.Input_Call_Id] ?? "-1").ToString());
 
                     List<ob_result_log> _list_call_log = GetCRM_OBCallLog(callId);
 
@@ -208,7 +208,7 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    int callId = Convert.ToInt32((data["Call_Id"] ?? "-1").ToString());
+                    int callId = Convert.ToInt32((data[AppInp.Input_Call_Id] ?? "-1").ToString());
 
                     List<ob_sales_order> _list_rt = GetCRM_OBSalesOrder(callId);
 
@@ -283,7 +283,7 @@ namespace marvel_campaign_NET8.Controllers
             string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
-            int callId = Convert.ToInt32((data["Call_Id"] ?? "-1").ToString());
+            int callId = Convert.ToInt32((data[AppInp.Input_Call_Id] ?? "-1").ToString());
 
             ob_sales_order _new_cp_item = new ob_sales_order();
 
@@ -423,7 +423,7 @@ namespace marvel_campaign_NET8.Controllers
 
         private void UpdateCRM_OBCallList(JsonObject data)
         {
-            int pID = Convert.ToInt32((data["Call_Id"] ?? "-1").ToString());
+            int pID = Convert.ToInt32((data[AppInp.Input_Call_Id] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             var _pro = _scrme.ob_results.FirstOrDefault(c => c.Call_Id == pID);
@@ -660,19 +660,19 @@ namespace marvel_campaign_NET8.Controllers
         // Sort customer records
         private static IQueryable<dynamic> SortCustomers(JsonObject data, IQueryable<dynamic> customers)
         {
-            int colIndex = data["order"]?[0]?["column"]?.GetValue<int>() ?? -1;
+            int colIndex = data[AppInp.Input_datatable_order]?[0]?["column"]?.GetValue<int>() ?? -1;
             string sortColumn = data["columns"]?[colIndex]?["data"]?.GetValue<string>() ?? string.Empty;
-            string sortColumnDir = data["order"]?[0]?["dir"]?.GetValue<string>() ?? "asc";
+            string sortColumnDir = data[AppInp.Input_datatable_order]?[0]?["dir"]?.GetValue<string>() ?? "asc";
 
             if (!string.IsNullOrEmpty(sortColumn))
             {
                 string ordering = $"r.{sortColumn} {(sortColumnDir == "desc" ? "descending" : "ascending")}";
 
-                if (data["order"]?.AsArray()?.Count > 1)
+                if (data[AppInp.Input_datatable_order]?.AsArray()?.Count > 1)
                 {
-                    int colIndex2 = data["order"]?[1]?["column"]?.GetValue<int>() ?? -1;
+                    int colIndex2 = data[AppInp.Input_datatable_order]?[1]?["column"]?.GetValue<int>() ?? -1;
                     string sortColumn2 = data["columns"]?[colIndex2]?["data"]?.GetValue<string>() ?? string.Empty;
-                    string sortColumnDir2 = data["order"]?[1]?["dir"]?.GetValue<string>() ?? "asc";
+                    string sortColumnDir2 = data[AppInp.Input_datatable_order]?[1]?["dir"]?.GetValue<string>() ?? "asc";
 
                     if (!string.IsNullOrEmpty(sortColumn2))
                     {
@@ -732,7 +732,7 @@ namespace marvel_campaign_NET8.Controllers
                 {
                     string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
                     string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
-                    int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+                    int assign_from = Convert.ToInt32((data[AppInp.Input_Assign_From] ?? "-1").ToString());
 
                     if (batchcode == string.Empty || campaigncode == string.Empty || assign_from == -1)
                     {
@@ -772,7 +772,7 @@ namespace marvel_campaign_NET8.Controllers
             string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
             string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
 
-            int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+            int assign_from = Convert.ToInt32((data[AppInp.Input_Assign_From] ?? "-1").ToString());
 
             string call_status = (data["Call_Status"] ?? "").ToString();
             string call_reason = (data["Call_Reason"] ?? "").ToString();
@@ -840,7 +840,7 @@ namespace marvel_campaign_NET8.Controllers
                 {
                     string batchcode = (data[AppInp.Input_Batch_Code] ?? "").ToString();
                     string campaigncode = (data[AppInp.Input_Campaign_Code] ?? "").ToString();
-                    int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+                    int assign_from = Convert.ToInt32((data[AppInp.Input_Assign_From] ?? "-1").ToString());
 
                     if (batchcode == string.Empty || campaigncode == string.Empty || assign_from == -1)
                     {
@@ -880,7 +880,7 @@ namespace marvel_campaign_NET8.Controllers
 
             int tot_count = _return_lead.Count();
 
-            int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
+            int assign_from = Convert.ToInt32((data[AppInp.Input_Assign_From] ?? "-1").ToString());
 
             int assign_total;
 

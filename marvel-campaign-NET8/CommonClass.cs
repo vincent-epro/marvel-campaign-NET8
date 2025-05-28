@@ -13,7 +13,10 @@ namespace marvel_campaign_NET8
         public const string Input_Scheduled_Time = "Scheduled_Time";
         public const string Input_Campaign_Code = "Campaign_Code";
         public const string Input_Batch_Code = "Batch_Code";
+        public const string Input_Call_Id = "Call_Id";
+        public const string Input_Assign_From = "Assign_From";
 
+        public const string Input_datatable_order = "order";
 
     }
 
