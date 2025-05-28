@@ -210,7 +210,7 @@ namespace marvel_campaign_NET8.Controllers
 
         private IQueryable<outbound_call_result> GetCRM_BatchLead(JsonObject data)
         {
-            int batch_id = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
+            int batch_id = Convert.ToInt32((data[AppInp.Input_Batch_Id] ?? "-1").ToString());
             int assign_from = Convert.ToInt32((data["Assign_From"] ?? "-1").ToString());
 
             string call_status = (data["Call_Status"] ?? "").ToString();
@@ -383,7 +383,7 @@ namespace marvel_campaign_NET8.Controllers
                 string channel_sms = (data["Channel_SMS"] ?? "").ToString();
                 string channel_whatsapp = (data["Channel_Whatsapp"] ?? "").ToString();
 
-                string gender = (data["Gender"] ?? "").ToString();
+                string gender = (data[AppInp.Input_Gender] ?? "").ToString();
 
                 string age_from = (data["Age_From"] ?? "").ToString();
                 string age_to = (data["Age_To"] ?? "").ToString();
@@ -442,7 +442,7 @@ namespace marvel_campaign_NET8.Controllers
 
         private IQueryable<contact_list> GetCRM_CustomerForOutbound(JsonObject data)
         {
-            string gender = (data["Gender"] ?? "").ToString();
+            string gender = (data[AppInp.Input_Gender] ?? "").ToString();
 
             int age_from = Convert.ToInt32((data["Age_From"] ?? "-1").ToString());
             int age_to = Convert.ToInt32((data["Age_To"] ?? "-1").ToString());
@@ -651,7 +651,7 @@ namespace marvel_campaign_NET8.Controllers
 
         private void UpdateCRM_OutboundBatch(JsonObject data)
         {
-            int pID = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
+            int pID = Convert.ToInt32((data[AppInp.Input_Batch_Id] ?? "-1").ToString());
             int agentId = Convert.ToInt32((data[AppInp.InputAuth_Agent_Id] ?? "-1").ToString());
 
             var _pro = _scrme.outbound_batches.FirstOrDefault(c => c.Batch_Id == pID);
@@ -813,7 +813,7 @@ namespace marvel_campaign_NET8.Controllers
             {
                 if (ValidateClass.Authenticated(token, tk_agentId))
                 {
-                    int batchNo = Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString());
+                    int batchNo = Convert.ToInt32((data[AppInp.Input_Batch_Id] ?? "-1").ToString());
 
                     if (batchNo == -1)
                     {
@@ -855,11 +855,11 @@ namespace marvel_campaign_NET8.Controllers
                 string callbackTimeTo, int draw, int start, int pageSize) ExtractParameters(JsonObject data)
         {
             return (
-                batchId: Convert.ToInt32((data["Batch_Id"] ?? "-1").ToString()),
+                batchId: Convert.ToInt32((data[AppInp.Input_Batch_Id] ?? "-1").ToString()),
                 agentId: Convert.ToInt32((data["To_Check_Id"] ?? "-1").ToString()),
                 phone: (data["Phone"] ?? "").ToString(),
                 name: (data["Name"] ?? "").ToString(),
-                gender: (data["Gender"] ?? "").ToString(),
+                gender: (data[AppInp.Input_Gender] ?? "").ToString(),
                 ageFrom: Convert.ToInt32((data["Age_From"] ?? "-1").ToString()),
                 ageTo: Convert.ToInt32((data["Age_To"] ?? "-1").ToString()),
                 callStatus: (data["Call_Status"] ?? "").ToString(),
@@ -937,7 +937,7 @@ namespace marvel_campaign_NET8.Controllers
 
                 if (!string.IsNullOrEmpty(sortColumn))
                 {
-                    var prefix = sortColumn is "Customer_Id" or "Name_Eng" or "Gender" or "Mobile_No" or "Email" ? "c." : "r.";
+                    var prefix = sortColumn is "Customer_Id" or "Name_Eng" or AppInp.Input_Gender or "Mobile_No" or "Email" ? "c." : "r.";
                     ordering.Add($"{prefix}{sortColumn}{(sortDir == "desc" ? " descending" : "")}");
                 }
             }
