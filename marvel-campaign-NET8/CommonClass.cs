@@ -22,6 +22,10 @@ namespace marvel_campaign_NET8
         public const string Input_SearchArr_field_name = "field_name";
         public const string Input_SearchArr_logic_operator = "logic_operator";
         public const string Input_SearchArr_value = "value";
+        public const string Input_Search_Operator_is_not = "is not";
+        public const string Input_Search_Operator_contains = "contains";
+        public const string Input_Search_Operator_not_contains = "not contains";
+
 
         public const string Input_datatable_order = "order";
 

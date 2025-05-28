@@ -169,7 +169,7 @@ namespace marvel_campaign_NET8.Controllers
                             cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
                             cond_a += ")";
                             break;
-                        case "is not" or "!=":
+                        case AppInp.Input_Search_Operator_is_not or "!=":
                             params_a.Add(field_value);
                             cond_a += "!(";
                             cond_a += $"c.Home_No=@{params_a.Count - 1}";
@@ -180,7 +180,7 @@ namespace marvel_campaign_NET8.Controllers
                             cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
                             cond_a += ")";
                             break;
-                        case "contains":
+                        case AppInp.Input_Search_Operator_contains:
                             params_a.Add(field_value);
                             cond_a += "(";
                             cond_a += $"c.Home_No.Contains(@{params_a.Count - 1})";
@@ -191,7 +191,7 @@ namespace marvel_campaign_NET8.Controllers
                             cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
                             cond_a += ")";
                             break;
-                        case "not contains":
+                        case AppInp.Input_Search_Operator_not_contains:
                             params_a.Add(field_value);
                             cond_a += "!(";
                             cond_a += $"c.Home_No.Contains(@{params_a.Count - 1})";
@@ -215,21 +215,21 @@ namespace marvel_campaign_NET8.Controllers
                             cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
                             cond_a += ")";
                             break;
-                        case "is not" or "!=":
+                        case AppInp.Input_Search_Operator_is_not or "!=":
                             params_a.Add(field_value);
                             cond_a += "!(";
                             cond_a += $"c.Email=@{params_a.Count - 1}";
                             cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
                             cond_a += ")";
                             break;
-                        case "contains":
+                        case AppInp.Input_Search_Operator_contains:
                             params_a.Add(field_value);
                             cond_a += "(";
                             cond_a += $"c.Email.Contains(@{params_a.Count - 1})";
                             cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
                             cond_a += ")";
                             break;
-                        case "not contains":
+                        case AppInp.Input_Search_Operator_not_contains:
                             params_a.Add(field_value);
                             cond_a += "!(";
                             cond_a += $"c.Email.Contains(@{params_a.Count - 1})";
@@ -363,7 +363,7 @@ namespace marvel_campaign_NET8.Controllers
                             cond_a += $" Or Fax_No=@{params_a.Count - 1}";
                             cond_a += ")";
                             break;
-                        case "is not" or "!=":
+                        case AppInp.Input_Search_Operator_is_not or "!=":
                             params_a.Add(field_value);
                             cond_a += "!(";
                             cond_a += $"Home_No=@{params_a.Count - 1}";
@@ -373,7 +373,7 @@ namespace marvel_campaign_NET8.Controllers
                             cond_a += $" Or Fax_No=@{params_a.Count - 1}";
                             cond_a += ")";
                             break;
-                        case "contains":
+                        case AppInp.Input_Search_Operator_contains:
                             params_a.Add(field_value);
                             cond_a += "(";
                             cond_a += $"Home_No.Contains(@{params_a.Count - 1})";
@@ -383,7 +383,7 @@ namespace marvel_campaign_NET8.Controllers
                             cond_a += $" Or Fax_No.Contains(@{params_a.Count - 1})";
                             cond_a += ")";
                             break;
-                        case "not contains":
+                        case AppInp.Input_Search_Operator_not_contains:
                             params_a.Add(field_value);
                             cond_a += "!(";
                             cond_a += $"Home_No.Contains(@{params_a.Count - 1})";
@@ -434,7 +434,7 @@ namespace marvel_campaign_NET8.Controllers
                     cond_a += $" And {alias}{field_name}<@{params_a.Count - 1}";
                     cond_a += ")";
                     break;
-                case "is not" or "!=":
+                case AppInp.Input_Search_Operator_is_not or "!=":
                     params_a.Add(_d1);
                     cond_a += "(";
                     cond_a += $"{alias}{field_name}<@{params_a.Count - 1}";
@@ -467,15 +467,15 @@ namespace marvel_campaign_NET8.Controllers
                     params_a.Add(field_value);
                     cond_a += $"{alias}{field_name}=@{params_a.Count - 1}";
                     break;
-                case "is not" or "!=":
+                case AppInp.Input_Search_Operator_is_not or "!=":
                     params_a.Add(field_value);
                     cond_a += $"{alias}{field_name}!=@{params_a.Count - 1}";
                     break;
-                case "contains":
+                case AppInp.Input_Search_Operator_contains:
                     params_a.Add(field_value);
                     cond_a += $"{alias}{field_name}.Contains(@{params_a.Count - 1})";
                     break;
-                case "not contains":
+                case AppInp.Input_Search_Operator_not_contains:
                     params_a.Add(field_value);
                     cond_a += $"!{alias}{field_name}.Contains(@{params_a.Count - 1})";
                     break;
@@ -495,7 +495,7 @@ namespace marvel_campaign_NET8.Controllers
                 case "is":
                     logic_operator = "=";
                     break;
-                case "is not":
+                case AppInp.Input_Search_Operator_is_not:
                     logic_operator = "!=";
                     break;
             }
