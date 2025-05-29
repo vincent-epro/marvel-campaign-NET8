@@ -251,8 +251,7 @@ namespace marvel_campaign_NET8.Controllers
         }
 
         private static string BuildMultiFieldCondition(string[] fields, string logicOperator, string fieldValue, ref List<object> parameters)
-        {
-            bool isNegative = logicOperator is "!=" or AppInp.Input_Search_Operator_not_contains;
+        {            
             string operatorSymbol = logicOperator switch
             {
                 "=" or "is" => "=",
