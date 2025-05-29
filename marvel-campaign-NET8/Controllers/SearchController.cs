@@ -2,13 +2,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using Microsoft.EntityFrameworkCore;
-
 
 namespace marvel_campaign_NET8.Controllers
 {
@@ -17,6 +15,7 @@ namespace marvel_campaign_NET8.Controllers
     public class SearchController : ControllerBase
     {
         private readonly ScrmDbContext _scrme;
+
         public SearchController(ScrmDbContext context)
         {
             _scrme = context;
@@ -27,20 +26,36 @@ namespace marvel_campaign_NET8.Controllers
         [HttpPost]
         public IActionResult CaseManualSearch([FromBody] JsonObject data)
         {
+            return ProcessSearch(data, SearchType.Case);
+        }
+
+        // Manual Search
+        [Route("ManualSearch")]
+        [HttpPost]
+        public IActionResult ManualSearch([FromBody] JsonObject data)
+        {
+            return ProcessSearch(data, SearchType.Customer);
+        }
+
+        private enum SearchType { Case, Customer }
+
+        private IActionResult ProcessSearch(JsonObject data, SearchType searchType)
+        {
             string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
             string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
-            //return Content(GetCaseResult(data).ToString(), "application/json; charset=utf-8", Encoding.UTF8); //
+
             try
             {
-                if (ValidateClass.Authenticated(token, tk_agentId))
-                {
-
-                    return Content(GetCaseResult(data).ToString(), "application/json; charset=utf-8", Encoding.UTF8);
-                }
-                else
+                if (!ValidateClass.Authenticated(token, tk_agentId))
                 {
                     return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
                 }
+
+                JObject result = searchType == SearchType.Case
+                    ? GetCaseResult(data)
+                    : GetCustomerResult(data);
+
+                return Content(result.ToString(), "application/json; charset=utf-8", Encoding.UTF8);
             }
             catch (Exception err)
             {
@@ -53,458 +68,306 @@ namespace marvel_campaign_NET8.Controllers
             string anyAll = (data["anyAll"] ?? "").ToString();
             JsonArray searchArray = (JsonArray?)data["searchArr"] ?? new JsonArray();
             string isCurrent = (data["Is_Current"] ?? "").ToString();
-            string IsValid = (data[AppInp.Input_Is_Valid] ?? "all").ToString();
+            string isValid = (data[AppInp.Input_Is_Valid] ?? "all").ToString();
             string countOnly = (data["Count_Only"] ?? "").ToString();
-            var query_r = _scrme.case_results.Select(r => r);
-            var query_rl = _scrme.case_result_logs.Select(r => r);
-            var query_c = _scrme.contact_lists.Select(r => r);
 
+            var query_r = _scrme.case_results.AsQueryable();
+            var query_rl = _scrme.case_result_logs.AsQueryable();
+            var query_c = _scrme.contact_lists.AsQueryable();
 
-            if (IsValid != "all")
+            if (isValid != "all")
             {
-                query_r = query_r.Where(r => r.Is_Valid == IsValid);
-                query_rl = query_rl.Where(r => r.Is_Valid == IsValid);
-                query_c = query_c.Where(r => r.Is_Valid == IsValid);
-            }
-            string where_a = string.Empty;
-            List<Object> params_a = [];
-            List<string> cond_arr = [];
-
-
-            foreach (var searchObj in searchArray)
-            {
-                string cond_a = string.Empty;
-                SetCaseCondition(searchObj, ref params_a, ref cond_a);
-                cond_arr.Add(cond_a);
+                query_r = query_r.Where(r => r.Is_Valid == isValid);
+                query_rl = query_rl.Where(r => r.Is_Valid == isValid);
+                query_c = query_c.Where(r => r.Is_Valid == isValid);
             }
 
-            if (anyAll == "any")
-                where_a = string.Join(" Or ", cond_arr.Where(s => !string.IsNullOrEmpty(s)));
-            else if (anyAll == "all")
-                where_a = string.Join(" And ", cond_arr.Where(s => !string.IsNullOrEmpty(s)));
+            var (whereClause, parameters) = BuildSearchConditions(searchArray, anyAll, isCaseSearch: true);
 
-            IQueryable<int> _q;
-            if (isCurrent != "Y")
-            {
-                _q = (from r in query_rl
-                      join c in query_c on r.Customer_Id equals c.Customer_Id
-                      select new { c, r }
-                      ).Where(where_a.ToString(), [.. params_a]).Select(q => q.r.Internal_Case_No ?? 0).Distinct();
-            }
-            else
-            {
-                _q = (from r in query_r
-                      join c in query_c on r.Customer_Id equals c.Customer_Id
-                      select new { c, r }
-                      ).Where(where_a.ToString(), [.. params_a]).Select(q => q.r.Internal_Case_No).Distinct();
-            }
-
-            List<JObject> jsonResultList = [];
+            IQueryable<int> caseQuery = isCurrent != "Y"
+                ? (from r in query_rl
+                   join c in query_c on r.Customer_Id equals c.Customer_Id
+                   select new { c, r })
+                  .Where(whereClause, parameters.ToArray())
+                  .Select(q => q.r.Internal_Case_No ?? 0)
+                  .Distinct()
+                : (from r in query_r
+                   join c in query_c on r.Customer_Id equals c.Customer_Id
+                   select new { c, r })
+                  .Where(whereClause, parameters.ToArray())
+                  .Select(q => q.r.Internal_Case_No)
+                  .Distinct();
 
             if (countOnly == "Y")
             {
-                return new JObject() {
-                    new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
-                    new JProperty(AppOutp.OutputDetails_Field, _q.Count())
+                return new JObject
+                {
+                    { AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC },
+                    { AppOutp.OutputDetails_Field, caseQuery.Count() }
                 };
             }
-            else if (_q.Count() > 0)
-            {
-                List<int> _list = _q.ToList<int>();
-                var _search_results = (from _case1 in _scrme.case_results
-                                       join _cust in _scrme.contact_lists
-                                       on _case1.Customer_Id equals _cust.Customer_Id
-                                       where _list.Contains(_case1.Internal_Case_No)
-                                       orderby _case1.Updated_Time descending
-                                       select new { _cust, _case1 }).Take(100).ToList();
 
-                foreach (var _result_item in _search_results)
+            List<JObject> jsonResultList = new();
+            if (caseQuery.Any())
+            {
+                var caseNumbers = caseQuery.ToList();
+                var searchResults = (from case1 in _scrme.case_results
+                                     join cust in _scrme.contact_lists
+                                     on case1.Customer_Id equals cust.Customer_Id
+                                     where caseNumbers.Contains(case1.Internal_Case_No)
+                                     orderby case1.Updated_Time descending
+                                     select new { cust, case1 })
+                                    .Take(100)
+                                    .ToList();
+
+                foreach (var result in searchResults)
                 {
-                    JObject tempJson = JObject.FromObject(_result_item._cust);
+                    JObject tempJson = JObject.FromObject(result.cust);
                     tempJson.Remove("Photo");
-                    JObject caseJson = JObject.FromObject(_result_item._case1);
+                    JObject caseJson = JObject.FromObject(result.case1);
                     caseJson.Remove("Customer_Id");
-                    caseJson.Property("Opened_By")?.Replace(new JProperty("Case_Opened_By", caseJson.Property("Opened_By")?.Value));
-                    caseJson.Property("Opened_Time")?.Replace(new JProperty("Case_Opened_Time", caseJson.Property("Opened_Time")?.Value));
-                    caseJson.Property("Created_By")?.Replace(new JProperty("Case_Created_By", caseJson.Property("Created_By")?.Value));
-                    caseJson.Property("Created_Time")?.Replace(new JProperty("Case_Created_Time", caseJson.Property("Created_Time")?.Value));
-                    caseJson.Property("Updated_By")?.Replace(new JProperty("Case_Updated_By", caseJson.Property("Updated_By")?.Value));
-                    caseJson.Property("Updated_Time")?.Replace(new JProperty("Case_Updated_Time", caseJson.Property("Updated_Time")?.Value));
-                    caseJson.Property(AppInp.Input_Is_Valid)?.Replace(new JProperty("Case_Is_Valid", caseJson.Property(AppInp.Input_Is_Valid)?.Value));
+                    RenameCaseProperties(caseJson);
                     tempJson.Merge(caseJson);
-
-                    jsonResultList.Add(tempJson); // add the temp result to the list    
+                    jsonResultList.Add(tempJson);
                 }
-
-
             }
-            return new JObject() {
-                new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
-                new JProperty(AppOutp.OutputDetails_Field, jsonResultList)
+
+            return new JObject
+            {
+                { AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC },
+                { AppOutp.OutputDetails_Field, JArray.FromObject(jsonResultList) }
             };
-
-        }
-
-        private static void SetCaseCondition(JsonNode? searchObj, ref List<object> params_a, ref string cond_a)
-        {
-            string list_name = (searchObj["list_name"] ?? "").ToString();
-            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
-            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
-            string field_type = (searchObj["field_type"] ?? "").ToString();
-            string field_value = searchObj[AppInp.Input_SearchArr_value].ToString();
-
-            switch (field_name)
-            {
-                case "All_Phone_No":
-                    switch (logic_operator)
-                    {
-                        case "is" or "=":
-                            params_a.Add(field_value);
-                            cond_a += "(";
-                            cond_a += $"c.Home_No=@{params_a.Count - 1}";
-                            cond_a += $" Or c.Office_No=@{params_a.Count - 1}";
-                            cond_a += $" Or c.Mobile_No=@{params_a.Count - 1}";
-                            cond_a += $" Or c.Other_Phone_No=@{params_a.Count - 1}";
-                            cond_a += $" Or c.Fax_No=@{params_a.Count - 1}";
-                            cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_is_not or "!=":
-                            params_a.Add(field_value);
-                            cond_a += "!(";
-                            cond_a += $"c.Home_No=@{params_a.Count - 1}";
-                            cond_a += $" Or c.Office_No=@{params_a.Count - 1}";
-                            cond_a += $" Or c.Mobile_No=@{params_a.Count - 1}";
-                            cond_a += $" Or c.Other_Phone_No=@{params_a.Count - 1}";
-                            cond_a += $" Or c.Fax_No=@{params_a.Count - 1}";
-                            cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_contains:
-                            params_a.Add(field_value);
-                            cond_a += "(";
-                            cond_a += $"c.Home_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or c.Office_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or c.Mobile_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or c.Other_Phone_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or c.Fax_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_not_contains:
-                            params_a.Add(field_value);
-                            cond_a += "!(";
-                            cond_a += $"c.Home_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or c.Office_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or c.Mobile_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or c.Other_Phone_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or c.Fax_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
-                            cond_a += ")";
-                            break;
-
-                    }
-                    break;
-                case "Email":
-                    switch (logic_operator)
-                    {
-                        case "is" or "=":
-                            params_a.Add(field_value);
-                            cond_a += "(";
-                            cond_a += $"c.Email=@{params_a.Count - 1}";
-                            cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_is_not or "!=":
-                            params_a.Add(field_value);
-                            cond_a += "!(";
-                            cond_a += $"c.Email=@{params_a.Count - 1}";
-                            cond_a += $" Or r.Type_Details=@{params_a.Count - 1}";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_contains:
-                            params_a.Add(field_value);
-                            cond_a += "(";
-                            cond_a += $"c.Email.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_not_contains:
-                            params_a.Add(field_value);
-                            cond_a += "!(";
-                            cond_a += $"c.Email.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or r.Type_Details.Contains(@{params_a.Count - 1})";
-                            cond_a += ")";
-                            break;
-                    }
-                    break;
-                default:
-                    string alias = (list_name == "Contact List") ? "c" : "r";
-                    switch (field_type)
-                    {
-                        case "datetime":
-                            SetDateTimeCondition(searchObj, alias, ref params_a, ref cond_a);
-                            break;
-                        case "string" or "null" or "":
-                            SetStringCondition(searchObj, alias, ref params_a, ref cond_a);
-                            break;
-                        default:
-                            SetDefaultCondition(searchObj, alias, ref params_a, ref cond_a);
-                            break;
-                    }
-                    break;
-            }
-        }
-
-        // Manual Search
-        [Route("ManualSearch")]
-        [HttpPost]
-        public IActionResult ManualSearch([FromBody] JsonObject data)
-        {
-            string token = (data[AppInp.InputAuth_Token] ?? "").ToString();
-            string tk_agentId = (data[AppInp.InputAuth_Agent_Id] ?? "").ToString();
-            //return Content(GetCustomerResult(data).ToString(), "application/json; charset=utf-8", Encoding.UTF8); //
-            try
-            {
-                if (ValidateClass.Authenticated(token, tk_agentId))
-                {
-
-                    return Content(GetCustomerResult(data).ToString(), "application/json; charset=utf-8", Encoding.UTF8);
-                }
-                else
-                {
-                    return Ok(new { result = AppOutp.OutputResult_FAIL, details = AppOutp.Not_Auth_Desc });
-                }
-            }
-            catch (Exception err)
-            {
-                return Ok(new { result = AppOutp.OutputResult_FAIL, details = err.Message });
-            }
         }
 
         private JObject GetCustomerResult(JsonObject data)
         {
             string anyAll = (data["anyAll"] ?? "all").ToString();
             JsonArray searchArray = (JsonArray?)data["searchArr"] ?? new JsonArray();
-            string IsValid = (data[AppInp.Input_Is_Valid] ?? "all").ToString();
+            string isValid = (data[AppInp.Input_Is_Valid] ?? "all").ToString();
             string takeAll = (data["Take_All"] ?? "").ToString();
 
-            var query_c = _scrme.contact_lists.Select(r => r);
-
-            if (IsValid != "all")
+            var query_c = _scrme.contact_lists.AsQueryable();
+            if (isValid != "all")
             {
-                query_c = query_c.Where(r => r.Is_Valid == IsValid);
+                query_c = query_c.Where(r => r.Is_Valid == isValid);
             }
 
-            string where_a = string.Empty;
-            List<Object> params_a = new() { };
-            List<string> cond_arr = [];
-            foreach (var searchObj in searchArray)
+            var (whereClause, parameters) = BuildSearchConditions(searchArray, anyAll, isCaseSearch: false);
+
+            var searchResult = takeAll == "Y"
+                ? query_c.Where(whereClause, parameters.ToArray()).ToList()
+                : query_c.Where(whereClause, parameters.ToArray()).OrderByDescending(s => s.Updated_Time).Take(100).ToList();
+
+            JArray jsonResultList = new();
+            foreach (var contact in searchResult)
             {
-                string cond_a = string.Empty;
-                SetCustomerCondition(searchObj, ref params_a, ref cond_a);
-                cond_arr.Add(cond_a);
-            }
-            if (anyAll == "any")
-                where_a = string.Join(" Or ", cond_arr.Where(s => !string.IsNullOrEmpty(s)));
-            else if (anyAll == "all")
-                where_a = string.Join(" And ", cond_arr.Where(s => !string.IsNullOrEmpty(s)));
-
-
-            List<contact_list> searchResult;
-            if (takeAll == "Y")
-                searchResult = query_c.Where(where_a, [.. params_a]).ToList();
-            else
-                searchResult = query_c.Where(where_a, [.. params_a]).OrderByDescending(_s => _s.Updated_Time).Take(100).ToList();
-
-            JArray jsonResultList = [];
-
-
-            foreach (contact_list contactList in searchResult)
-            {
-
-                JObject tempJson = JObject.FromObject(contactList);
+                JObject tempJson = JObject.FromObject(contact);
                 tempJson.Remove("Photo");
-
                 if (takeAll != "Y")
                 {
-                    bool hasCase = _scrme.case_results.Where(r => r.Customer_Id == contactList.Customer_Id && r.Is_Valid == "Y").Any();
+                    bool hasCase = _scrme.case_results.Any(r => r.Customer_Id == contact.Customer_Id && r.Is_Valid == "Y");
                     tempJson.AddFirst(new JProperty("have_case", hasCase));
                 }
-
                 jsonResultList.Add(tempJson);
             }
 
-            return new JObject() {
-                new JProperty(AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC),
-                new JProperty(AppOutp.OutputDetails_Field, jsonResultList)
+            return new JObject
+            {
+                { AppOutp.OutputResult_Field, AppOutp.OutputResult_SUCC },
+                { AppOutp.OutputDetails_Field, jsonResultList }
             };
         }
 
-        private static void SetCustomerCondition(JsonNode? searchObj, ref List<object> params_a, ref string cond_a)
+        private static (string WhereClause, List<object> Parameters) BuildSearchConditions(JsonArray searchArray, string anyAll, bool isCaseSearch)
         {
-            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
-            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
-            string field_type = (searchObj["field_type"] ?? "").ToString();
-            string field_value = searchObj[AppInp.Input_SearchArr_value].ToString();
+            List<string> conditions = new();
+            List<object> parameters = new();
 
-            switch (field_name)
+            foreach (var searchObj in searchArray)
             {
-                case "All_Phone_No":
-                    switch (logic_operator)
-                    {
-                        case "is" or "=":
-                            params_a.Add(field_value);
-                            cond_a += "(";
-                            cond_a += $"Home_No=@{params_a.Count - 1}";
-                            cond_a += $" Or Office_No=@{params_a.Count - 1}";
-                            cond_a += $" Or Mobile_No=@{params_a.Count - 1}";
-                            cond_a += $" Or Other_Phone_No=@{params_a.Count - 1}";
-                            cond_a += $" Or Fax_No=@{params_a.Count - 1}";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_is_not or "!=":
-                            params_a.Add(field_value);
-                            cond_a += "!(";
-                            cond_a += $"Home_No=@{params_a.Count - 1}";
-                            cond_a += $" Or Office_No=@{params_a.Count - 1}";
-                            cond_a += $" Or Mobile_No=@{params_a.Count - 1}";
-                            cond_a += $" Or Other_Phone_No=@{params_a.Count - 1}";
-                            cond_a += $" Or Fax_No=@{params_a.Count - 1}";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_contains:
-                            params_a.Add(field_value);
-                            cond_a += "(";
-                            cond_a += $"Home_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or Office_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or Mobile_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or Other_Phone_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or Fax_No.Contains(@{params_a.Count - 1})";
-                            cond_a += ")";
-                            break;
-                        case AppInp.Input_Search_Operator_not_contains:
-                            params_a.Add(field_value);
-                            cond_a += "!(";
-                            cond_a += $"Home_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or Office_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or Mobile_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or Other_Phone_No.Contains(@{params_a.Count - 1})";
-                            cond_a += $" Or Fax_No.Contains(@{params_a.Count - 1})";
-                            cond_a += ")";
-                            break;
+                string condition = string.Empty;
+                SetCondition(searchObj, ref parameters, ref condition, isCaseSearch);
+                if (!string.IsNullOrEmpty(condition))
+                {
+                    conditions.Add(condition);
+                }
+            }
 
-                    }
+            string whereClause = anyAll == "any"
+                ? string.Join(" Or ", conditions)
+                : string.Join(" And ", conditions);
+
+            return (whereClause, parameters);
+        }
+
+        private static void SetCondition(JsonNode? searchObj, ref List<object> parameters, ref string condition, bool isCaseSearch)
+        {
+            string fieldName = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
+            string logicOperator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
+            string fieldType = (searchObj["field_type"] ?? "").ToString();
+            string fieldValue = searchObj[AppInp.Input_SearchArr_value]?.ToString() ?? "";
+            string listName = (searchObj["list_name"] ?? "").ToString();
+
+            // Normalize operator
+            logicOperator = logicOperator switch
+            {
+                "is" => "=",
+                AppInp.Input_Search_Operator_is_not => "!=",
+                _ => logicOperator
+            };
+
+            // Handle multi-field searches (All_Phone_No, Email)
+            if (fieldName == "All_Phone_No")
+            {
+                var fields = isCaseSearch
+                    ? new[] { "c.Home_No", "c.Office_No", "c.Mobile_No", "c.Other_Phone_No", "c.Fax_No", "r.Type_Details" }
+                    : new[] { "Home_No", "Office_No", "Mobile_No", "Other_Phone_No", "Fax_No" };
+                condition = BuildMultiFieldCondition(fields, logicOperator, fieldValue, ref parameters);
+                return;
+            }
+            else if (fieldName == "Email" && isCaseSearch)
+            {
+                condition = BuildMultiFieldCondition(new[] { "c.Email", "r.Type_Details" }, logicOperator, fieldValue, ref parameters);
+                return;
+            }
+
+            // Determine alias based on search type and list name
+            string alias = isCaseSearch && listName != "Contact List" ? "r" : "c";
+            if (!isCaseSearch) alias = ""; // No alias for customer search
+
+            // Handle single-field conditions
+            switch (fieldType)
+            {
+                case "datetime":
+                    condition = BuildDateTimeCondition(fieldName, logicOperator, fieldValue, alias, ref parameters);
+                    break;
+                case "string" or "null" or "":
+                    condition = BuildStringCondition(fieldName, logicOperator, fieldValue, alias, ref parameters);
                     break;
                 default:
-                    switch (field_type)
-                    {
-                        case "datetime":
-                            SetDateTimeCondition(searchObj, null, ref params_a, ref cond_a);
-                            break;
-                        case "string" or "null" or "":
-                            SetStringCondition(searchObj, null, ref params_a, ref cond_a);
-                            break;
-                        default:
-                            SetDefaultCondition(searchObj, null, ref params_a, ref cond_a);
-                            break;
-                    }
+                    condition = BuildDefaultCondition(fieldName, logicOperator, fieldType, fieldValue, alias, ref parameters);
                     break;
             }
         }
 
-        private static void SetDateTimeCondition(JsonNode searchObj, string? alias,
-            ref List<object> params_a, ref string cond_a)
+        private static string BuildMultiFieldCondition(string[] fields, string logicOperator, string fieldValue, ref List<object> parameters)
         {
-            if (!string.IsNullOrEmpty(alias)) alias += ".";
-            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
-            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
-            string field_value = (searchObj[AppInp.Input_SearchArr_value] ?? "").ToString();
-
-            DateTime _d1 = Convert.ToDateTime(field_value);
-            DateTime _d2 = _d1.AddDays(1);
-
-            switch (logic_operator)
+            bool isNegative = logicOperator is "!=" or AppInp.Input_Search_Operator_not_contains;
+            string operatorSymbol = logicOperator switch
             {
-                case "is" or "=":
-                    params_a.Add(_d1);
-                    cond_a += "(";
-                    cond_a += $"{alias}{field_name}>=@{params_a.Count - 1}";
-                    params_a.Add(_d2);
-                    cond_a += $" And {alias}{field_name}<@{params_a.Count - 1}";
-                    cond_a += ")";
-                    break;
-                case AppInp.Input_Search_Operator_is_not or "!=":
-                    params_a.Add(_d1);
-                    cond_a += "(";
-                    cond_a += $"{alias}{field_name}<@{params_a.Count - 1}";
-                    params_a.Add(_d2);
-                    cond_a += $" Or {alias}{field_name}>=@{params_a.Count - 1}";
-                    cond_a += ")";
-                    break;
-                case ">" or "<=":
-                    DateTime _d1x = Convert.ToDateTime(field_value + " 23:59:59");
-                    params_a.Add(_d1x);
-                    cond_a += $"{alias}{field_name}{logic_operator}@{params_a.Count - 1}";
-                    break;
-                case ">=" or "<":
-                    params_a.Add(_d1);
-                    cond_a += $"{alias}{field_name}{logic_operator}@{params_a.Count - 1}";
-                    break;
+                "=" or "is" => "=",
+                "!=" or AppInp.Input_Search_Operator_is_not => "!=",
+                AppInp.Input_Search_Operator_contains => "Contains",
+                AppInp.Input_Search_Operator_not_contains => "!Contains",
+                _ => "="
+            };
 
+            parameters.Add(fieldValue);
+            int paramIndex = parameters.Count - 1;
+            var conditions = fields.Select(field =>
+            {
+                if (operatorSymbol == "Contains")
+                {
+                    return $"({field} != null && {field}.Contains(@{paramIndex}))";
+                }
+                if (operatorSymbol == "!Contains")
+                {
+                    return $"({field} == null || !{field}.Contains(@{paramIndex}))";
+                }
+                if (operatorSymbol == "!=")
+                {
+                    // For !=, ensure the field is either null or not equal to the value
+                    return $"({field} == null || {field} != @{paramIndex})";
+                }
+                return $"{field}{operatorSymbol}@{paramIndex}";
+            }).ToList();
+
+            // Use AND for != and !Contains to ensure all fields satisfy the condition
+            string joinOperator = operatorSymbol == "!=" || operatorSymbol == "!Contains" ? " And " : " Or ";
+            string condition = $"({string.Join(joinOperator, conditions)})";
+            return condition;
+        }
+
+        private static string BuildDateTimeCondition(string fieldName, string logicOperator, string fieldValue, string alias, ref List<object> parameters)
+        {
+            alias = string.IsNullOrEmpty(alias) ? "" : $"{alias}.";
+            try
+            {
+                DateTime d1 = Convert.ToDateTime(fieldValue);
+                DateTime d2 = d1.AddDays(1);
+
+                switch (logicOperator)
+                {
+                    case "=":
+                        parameters.Add(d1);
+                        parameters.Add(d2);
+                        return $"({alias}{fieldName}>=@{parameters.Count - 2} And {alias}{fieldName}<@{parameters.Count - 1})";
+                    case "!=":
+                        parameters.Add(d1);
+                        parameters.Add(d2);
+                        return $"({alias}{fieldName}<@{parameters.Count - 2} Or {alias}{fieldName}>=@{parameters.Count - 1})";
+                    case ">" or "<=":
+                        DateTime d1x = Convert.ToDateTime(fieldValue + " 23:59:59");
+                        parameters.Add(d1x);
+                        return $"{alias}{fieldName}{logicOperator}@{parameters.Count - 1}";
+                    case ">=" or "<":
+                        parameters.Add(d1);
+                        return $"{alias}{fieldName}{logicOperator}@{parameters.Count - 1}";
+                    default:
+                        return "";
+                }
+            }
+            catch (FormatException)
+            {
+                return "";
             }
         }
-        private static void SetStringCondition(JsonNode searchObj, string? alias,
-            ref List<object> params_a, ref string cond_a)
-        {
-            if (!string.IsNullOrEmpty(alias)) alias += ".";
-            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
-            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
-            string field_value = (searchObj[AppInp.Input_SearchArr_value] ?? "").ToString();
-            switch (logic_operator)
-            {
-                case "is" or "=":
-                    params_a.Add(field_value);
-                    cond_a += $"{alias}{field_name}=@{params_a.Count - 1}";
-                    break;
-                case AppInp.Input_Search_Operator_is_not or "!=":
-                    params_a.Add(field_value);
-                    cond_a += $"{alias}{field_name}!=@{params_a.Count - 1}";
-                    break;
-                case AppInp.Input_Search_Operator_contains:
-                    params_a.Add(field_value);
-                    cond_a += $"{alias}{field_name}.Contains(@{params_a.Count - 1})";
-                    break;
-                case AppInp.Input_Search_Operator_not_contains:
-                    params_a.Add(field_value);
-                    cond_a += $"!{alias}{field_name}.Contains(@{params_a.Count - 1})";
-                    break;
-            }
-        }
-        private static void SetDefaultCondition(JsonNode searchObj, string? alias,
-            ref List<object> params_a, ref string cond_a)
-        {
-            if (!string.IsNullOrEmpty(alias)) alias += ".";
-            string field_name = (searchObj[AppInp.Input_SearchArr_field_name] ?? "").ToString();
-            string logic_operator = (searchObj[AppInp.Input_SearchArr_logic_operator] ?? "").ToString();
-            string field_type = (searchObj["field_type"] ?? "").ToString();
-            string field_value = (searchObj[AppInp.Input_SearchArr_value] ?? "").ToString();
 
-            switch (logic_operator)
+        private static string BuildStringCondition(string fieldName, string logicOperator, string fieldValue, string alias, ref List<object> parameters)
+        {
+            alias = string.IsNullOrEmpty(alias) ? "" : $"{alias}.";
+            parameters.Add(fieldValue);
+            return logicOperator switch
             {
-                case "is":
-                    logic_operator = "=";
-                    break;
-                case AppInp.Input_Search_Operator_is_not:
-                    logic_operator = "!=";
-                    break;
-            }
-            if (field_type == "number")
-                params_a.Add(Convert.ToInt32(field_value));
+                "=" => $"{alias}{fieldName}=@{parameters.Count - 1}",
+                "!=" => $"{alias}{fieldName}!=@{parameters.Count - 1}",
+                AppInp.Input_Search_Operator_contains => $"{alias}{fieldName}.Contains(@{parameters.Count - 1})",
+                AppInp.Input_Search_Operator_not_contains => $"!{alias}{fieldName}.Contains(@{parameters.Count - 1})",
+                _ => ""
+            };
+        }
+
+        private static string BuildDefaultCondition(string fieldName, string logicOperator, string fieldType, string fieldValue, string alias, ref List<object> parameters)
+        {
+            alias = string.IsNullOrEmpty(alias) ? "" : $"{alias}.";
+            if (fieldType == "number")
+                parameters.Add(Convert.ToInt32(fieldValue));
             else
-                params_a.Add(field_value);
-            cond_a += $"{alias}{field_name} {logic_operator}@{params_a.Count - 1}";
+                parameters.Add(fieldValue);
+            return $"{alias}{fieldName} {logicOperator}@{parameters.Count - 1}";
+        }
+
+        private static void RenameCaseProperties(JObject caseJson)
+        {
+            var propertyMap = new Dictionary<string, string>
+            {
+                { "Opened_By", "Case_Opened_By" },
+                { "Opened_Time", "Case_Opened_Time" },
+                { "Created_By", "Case_Created_By" },
+                { "Created_Time", "Case_Created_Time" },
+                { "Updated_By", "Case_Updated_By" },
+                { "Updated_Time", "Case_Updated_Time" },
+                { AppInp.Input_Is_Valid, "Case_Is_Valid" }
+            };
+
+            foreach (var prop in propertyMap)
+            {
+                if (caseJson.Property(prop.Key) != null)
+                {
+                    caseJson[prop.Value] = caseJson[prop.Key];
+                    caseJson.Remove(prop.Key);
+                }
+            }
         }
     }
-
 }
