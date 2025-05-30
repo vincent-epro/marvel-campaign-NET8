@@ -657,7 +657,7 @@ namespace marvel_campaign_NET8.Controllers
             var _pro = _scrme.outbound_batches.FirstOrDefault(c => c.Batch_Id == pID);
             if (_pro == null) return;
 
-            var fieldsToBeUpdatedDict = BuildFields_forbBatch(data);
+            var fieldsToBeUpdatedDict = BuildFieldsDictionary<outbound_batch>(data);
 
             foreach (var field in fieldsToBeUpdatedDict)
             {
@@ -670,31 +670,6 @@ namespace marvel_campaign_NET8.Controllers
             _scrme.SaveChanges();
         }
 
-        private static Dictionary<string, dynamic> BuildFields_forbBatch(JsonObject data)
-        {
-            var dict = new Dictionary<string, dynamic>();
-            var obResultType = typeof(outbound_batch);
-
-            foreach (var item in data)
-            {
-                string fieldName = item.Key;
-                if (fieldName is AppInp.InputAuth_Agent_Id or "Token") continue;
-
-                var fieldValue = item.Value?.ToString();
-                var fieldProp = obResultType.GetProperty(fieldName);
-                if (fieldProp == null) continue;
-
-                var type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
-                dict[fieldName] = type.Name switch
-                {
-                    "Int16" or "Int32" or "Int64" or "DateTime" or "Boolean" =>
-                        fieldValue != null ? Convert.ChangeType(fieldValue, type) : null,
-                    _ => fieldValue ?? string.Empty
-                };
-            }
-
-            return dict;
-        }
 
 
         // Update Outbound CallList
@@ -731,7 +706,7 @@ namespace marvel_campaign_NET8.Controllers
             var _pro = _scrme.outbound_call_results.FirstOrDefault(c => c.Call_Lead_Id == pID);
             if (_pro == null) return;
 
-            var fieldsToBeUpdatedDict = BuildFieldsDictionary(data);
+            var fieldsToBeUpdatedDict = BuildFieldsDictionary<outbound_call_result>(data);
 
             foreach (var field in fieldsToBeUpdatedDict)
             {
@@ -743,10 +718,10 @@ namespace marvel_campaign_NET8.Controllers
             _scrme.SaveChanges();
         }
 
-        private static Dictionary<string, dynamic> BuildFieldsDictionary(JsonObject data)
+        private static Dictionary<string, dynamic> BuildFieldsDictionary<T>(JsonObject data)
         {
             var dict = new Dictionary<string, dynamic>();
-            var obResultType = typeof(outbound_call_result);
+            var entityType = typeof(T);
 
             foreach (var item in data)
             {
@@ -754,7 +729,7 @@ namespace marvel_campaign_NET8.Controllers
                 if (fieldName is AppInp.InputAuth_Agent_Id or "Token") continue;
 
                 var fieldValue = item.Value?.ToString();
-                var fieldProp = obResultType.GetProperty(fieldName);
+                var fieldProp = entityType.GetProperty(fieldName);
                 if (fieldProp == null) continue;
 
                 var type = Nullable.GetUnderlyingType(fieldProp.PropertyType) ?? fieldProp.PropertyType;
